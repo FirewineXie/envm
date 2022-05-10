@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"os/exec"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -49,15 +50,16 @@ func getCurrentVersion() (version string) {
 // 获取下载的版本列表
 func getInstalled(root string) []string {
 	list := make([]semver.Version, 0)
-	files, _ := ioutil.ReadDir(root)
+	files, _ := ioutil.ReadDir(path.Clean(root))
 	for i := len(files) - 1; i >= 0; i-- {
 		if files[i].IsDir() {
 			isGo, _ := regexp.MatchString("go", files[i].Name())
 			if isGo {
 				currentVersionString := strings.Replace(files[i].Name(), "go", "", 1)
-				currentVersion, _ := semver.Make(currentVersionString)
+				if currentVersion, err := semver.Make(currentVersionString); err == nil {
+					list = append(list, currentVersion)
+				}
 
-				list = append(list, currentVersion)
 			}
 		}
 	}

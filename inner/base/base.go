@@ -5,10 +5,11 @@ import (
 	"github.com/FirewineXie/govm/inner/config"
 	"github.com/FirewineXie/govm/inner/web"
 	"github.com/urfave/cli"
-	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+	"regexp"
 )
 
 // CommandUse 激活使用go版本
@@ -19,37 +20,58 @@ func CommandUse(ctx *cli.Context) error {
 		return err
 	}
 	// active use
-	_ = os.Remove(config.Default().Root)
+	_ = os.Remove(config.Default().Symlink)
 
-	if err := os.Symlink(v, config.Default().Root); err != nil {
+	if err := os.Symlink(path.Join(config.Default().Download, v), config.Default().Symlink); err != nil {
 		return cli.NewExitError(fmt.Sprintf("%s", err.Error()), 1)
 	}
-	if output, err := exec.Command(filepath.Join(config.Default().Root, "bin", "go"), "version").Output(); err == nil {
-		fmt.Printf(string(output))
+	output, err := exec.Command(filepath.Join(config.Default().Root, "bin", "go"), "version").Output()
+	if err != nil {
+		return err
 	}
+	fmt.Println(string(output))
+	return nil
 }
 
 // CommandListRemote 获取远程的可下载的版本
-func CommandListRemote(ctx *cli.Context) {
+func CommandListRemote(ctx *cli.Context) error {
+	versionType := ctx.Args().First()
+
 	collector, err := web.NewCollector("")
 	if err != nil {
-		log.Fatal(err)
-		return
+		return cli.NewExitError(fmt.Sprintf("collect version error1 + %v", err), 1)
+	}
+	if versionType == "stable" {
+		versions, err := collector.StableVersions()
+		if err != nil {
+			return cli.NewExitError(fmt.Sprintf("collect version error2 + %v", err), 1)
+		}
+		for _, version := range versions {
+			fmt.Println(version.Name)
+		}
+		return nil
+	}
+	if versionType == "archived" {
+		versions, err := collector.ArchivedVersions()
+		if err != nil {
+
+			return err
+		}
+		for _, version := range versions {
+			fmt.Println(version.Name)
+		}
+		return nil
 	}
 
-	versions, err := collector.AllVersions()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	fmt.Println(versions)
+	return cli.ShowSubcommandHelp(ctx)
+
 }
 
 // CommandListInstalled 展示已经安装的go 版本
 func CommandListInstalled(ctx *cli.Context) {
 	in := getCurrentVersion()
 
-	v := getInstalled(config.Default().Root)
+	v := getInstalled(config.Default().Download)
 
 	for i := 0; i < len(v); i++ {
 		version := v[i]
@@ -61,6 +83,7 @@ func CommandListInstalled(ctx *cli.Context) {
 		} else {
 			str = str + "    "
 		}
+		str = str + regexp.MustCompile("go").ReplaceAllString(version, "")
 		if in == goVersion {
 			str = str + " (Currently using " + in + " executable)"
 		}

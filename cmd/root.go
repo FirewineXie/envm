@@ -29,6 +29,7 @@ func Execute() {
 	app.Commands = commands
 
 	app.After = func(ctx *cli.Context) error {
+
 		config.SaveSettings()
 		return nil
 	}

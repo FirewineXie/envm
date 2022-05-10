@@ -21,9 +21,9 @@ var (
 			Action:    base.CommandListInstalled,
 		},
 		{
-			Name:      "ls-remote",
+			Name:      "lsr",
 			Usage:     "List remote versions available for install",
-			UsageText: "gvm ls-remote [stable|archived]",
+			UsageText: "govm lsr [stable|archived]",
 			Action:    base.CommandListRemote,
 		},
 		{
@@ -32,17 +32,17 @@ var (
 			UsageText: "gvm active <version>",
 			Action:    base.CommandUse,
 		},
-		{
-			Name:      "install",
-			Usage:     "Download and install a <version>",
-			UsageText: "gvm install <version>",
-			Action:    install,
-		},
-		{
-			Name:      "uninstall",
-			Usage:     "Uninstall a version",
-			UsageText: "gvm uninstall <version>",
-			Action:    uninstall,
-		},
+		//{
+		//	Name:      "install",
+		//	Usage:     "Download and install a <version>",
+		//	UsageText: "gvm install <version>",
+		//	Action:    install,
+		//},
+		//{
+		//	Name:      "uninstall",
+		//	Usage:     "Uninstall a version",
+		//	UsageText: "gvm uninstall <version>",
+		//	Action:    uninstall,
+		//},
 	}
 )

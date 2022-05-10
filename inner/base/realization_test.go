@@ -15,7 +15,7 @@ func Test_getCurrentVersion(t *testing.T) {
 
 func Test_getInstalled(t *testing.T) {
 	Convey("测试已经安装的go 版本", t, func() {
-		fmt.Println(getInstalled("D:\\ProgramData\\Go"))
-		
+		fmt.Println(getInstalled("D:\\programs"))
+
 	})
 }
