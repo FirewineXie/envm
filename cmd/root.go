@@ -24,6 +24,12 @@ func Execute() {
 	app.Before = func(ctx *cli.Context) (err error) {
 
 		config.ReadSettings()
+
+		err = os.MkdirAll(config.Default().Download, 0777)
+		if err != nil {
+			return cli.NewExitError("download path error", 1)
+		}
+
 		return nil
 	}
 	app.Commands = commands

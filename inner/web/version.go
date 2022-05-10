@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -84,6 +85,39 @@ func (pkg *Package) Download(dst string) (size int64, err error) {
 		return 0, NewDownloadError(pkg.URL, err)
 	}
 	return size, nil
+}
+
+// DownloadV2 下载版本另存为指定文件并校验sha256哈希值
+func (pkg *Package) DownloadV2(dst string) (err error) {
+	// Create the file, but give it a tmp file extension, this means we won't overwrite a
+	// file until it's downloaded, but we'll remove the tmp extension once downloaded.
+	out, err := os.Create(dst + ".tmp")
+	if err != nil {
+		return err
+	}
+	resp, err := http.Get(pkg.URL)
+	if err != nil {
+		return NewDownloadError(pkg.URL, err)
+	}
+	defer resp.Body.Close()
+
+	parseInt, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
+	// Create our progress reporter and pass it to be used alongside our writer
+	counter := NewOption(0, parseInt)
+	_, err = io.Copy(out, io.TeeReader(resp.Body, counter))
+	if err != nil {
+		return err
+	}
+
+	out.Close()
+
+	// The progress use the same line so print a new line once it's finished downloading
+	fmt.Print("\n")
+	err = os.Rename(dst+".tmp", dst)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // DownloadError 下载失败错误

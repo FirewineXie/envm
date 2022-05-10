@@ -2,15 +2,76 @@ package base
 
 import (
 	"fmt"
+	"github.com/FirewineXie/govm/inner/arch"
 	"github.com/FirewineXie/govm/inner/config"
 	"github.com/FirewineXie/govm/inner/web"
+	"github.com/mholt/archiver"
 	"github.com/urfave/cli"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 )
+
+func CommandUninstall(ctx *cli.Context) error {
+	versionS := ctx.Args().First()
+
+	version := getCurrentVersion()
+	if versionS == version {
+		return cli.NewExitError("不能卸载当前版本", 1)
+	}
+	err := os.Remove(filepath.Join(config.Default().Download, "go"+versionS))
+	if err != nil {
+		return cli.NewExitError("删除该版本失败+"+err.Error(), 1)
+	}
+	return nil
+}
+
+// CommandInstall 安装命令
+func CommandInstall(ctx *cli.Context) error {
+	versionS := ctx.Args().First()
+	collector, err := web.NewCollector("")
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("collect version error1 + %v", err), 1)
+	}
+	var version *web.Version
+	versions, err := collector.AllVersions()
+	for _, v := range versions {
+		if v.Name == versionS {
+			version = v
+			break
+		}
+	}
+	findPackage, err := version.FindPackage(web.ArchiveKind, runtime.GOOS, arch.Validate(""))
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("find version of system error + %v", err), 1)
+	}
+	downloadPath := filepath.Clean(filepath.Join(config.Default().Download, findPackage.FileName))
+	findPackage.URL = "https://dl.google.com/go" + "/" + findPackage.FileName
+	err = findPackage.DownloadV2(downloadPath)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("download version error + %v", err), 1)
+	}
+	err = findPackage.VerifyChecksum(downloadPath)
+	if err != nil {
+		return cli.NewExitError(fmt.Sprintf("verify version error + %v", err), 1)
+	}
+
+	// 解压安装包
+	unchivePath := filepath.Clean(filepath.Join(config.Default().Download))
+	if err = archiver.Unarchive(downloadPath, unchivePath); err != nil {
+		return cli.NewExitError(fmt.Sprintf(" %s", err.Error()), 1)
+	}
+	err = os.Remove(downloadPath)
+	// 目录重命名
+	if err = os.Rename(filepath.Join(unchivePath, "go"), filepath.Clean(filepath.Join(config.Default().Download, "go"+versionS))); err != nil {
+		return cli.NewExitError(fmt.Sprintf(" %s", err.Error()), 1)
+	}
+	fmt.Println("Installed successfully")
+	return nil
+}
 
 // CommandUse 激活使用go版本
 func CommandUse(ctx *cli.Context) error {
@@ -22,10 +83,10 @@ func CommandUse(ctx *cli.Context) error {
 	// active use
 	_ = os.Remove(config.Default().Symlink)
 
-	if err := os.Symlink(path.Join(config.Default().Download, v), config.Default().Symlink); err != nil {
+	if err := os.Symlink(path.Join(config.Default().Download, "go"+v), config.Default().Symlink); err != nil {
 		return cli.NewExitError(fmt.Sprintf("%s", err.Error()), 1)
 	}
-	output, err := exec.Command(filepath.Join(config.Default().Root, "bin", "go"), "version").Output()
+	output, err := exec.Command("go", "version").Output()
 	if err != nil {
 		return err
 	}

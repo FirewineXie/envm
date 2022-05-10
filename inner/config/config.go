@@ -19,7 +19,7 @@ var root = filepath.Clean(os.Getenv("GOVM_HOME"))
 var symlink = filepath.Clean(os.Getenv("GOVM_SYMLINK"))
 
 var env = GoVmConfig{
-	Settings: path.Join(root, "settings"),
+	Settings: path.Clean(path.Join(root, "settings")),
 	Root:     root,
 	Symlink:  symlink,
 	Arch:     arch.Validate(""),

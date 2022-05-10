@@ -29,20 +29,20 @@ var (
 		{
 			Name:      "active",
 			Usage:     "Switch to specified version",
-			UsageText: "gvm active <version>",
+			UsageText: "govm active <version>",
 			Action:    base.CommandUse,
 		},
-		//{
-		//	Name:      "install",
-		//	Usage:     "Download and install a <version>",
-		//	UsageText: "gvm install <version>",
-		//	Action:    install,
-		//},
-		//{
-		//	Name:      "uninstall",
-		//	Usage:     "Uninstall a version",
-		//	UsageText: "gvm uninstall <version>",
-		//	Action:    uninstall,
-		//},
+		{
+			Name:      "install",
+			Usage:     "Download and install a <version>",
+			UsageText: "govm install <version>",
+			Action:    base.CommandInstall,
+		},
+		{
+			Name:      "uninstall",
+			Usage:     "Uninstall a version",
+			UsageText: "gvm uninstall <version>",
+			Action:    base.CommandUninstall,
+		},
 	}
 )
