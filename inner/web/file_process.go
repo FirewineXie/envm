@@ -11,12 +11,13 @@ import (
 )
 
 type Bar struct {
-	percent float32     // 百分比
-	cur     int64       // 当前进度位置
-	total   int64       // 总进度
-	rate    string      // 进度条
-	graph   string      // 显示符号
-	lock    *sync.Mutex // 读写锁，正确打印
+	percent    float32     // 百分比
+	percentInt int         //
+	cur        int64       // 当前进度位置
+	total      int64       // 总进度
+	rate       string      // 进度条
+	graph      string      // 显示符号
+	lock       *sync.Mutex // 读写锁，正确打印
 }
 
 var bar *Bar
@@ -45,13 +46,15 @@ func NewOption(start, total int64) *Bar {
 
 func (bar *Bar) Play() {
 	bar.lock.Lock()
+	defer bar.lock.Unlock()
 	bar.percent = bar.getPercent()
 	i := int(bar.percent)
+	if bar.percentInt <= i {
+		bar.percentInt = i
+		bar.rate = strings.Repeat(bar.graph, i/2)
+		fmt.Printf("\r[%-50s]%0.2f%% %8d/%d", bar.rate, bar.percent, bar.cur, bar.total)
+	}
 
-	bar.rate = strings.Repeat(bar.graph, i)
-
-	defer bar.lock.Unlock()
-	fmt.Printf("\r[%-50s]%0.2f%% %8d/%d", bar.rate, bar.percent, bar.cur, bar.total)
 }
 
 func (bar *Bar) Write(p []byte) (int, error) {

@@ -22,10 +22,11 @@ func CommandUninstall(ctx *cli.Context) error {
 	if versionS == version {
 		return cli.NewExitError("不能卸载当前版本", 1)
 	}
-	err := os.Remove(filepath.Join(config.Default().Download, "go"+versionS))
+	err := os.RemoveAll(filepath.Join(config.Default().Download, "go"+versionS))
 	if err != nil {
 		return cli.NewExitError("删除该版本失败+"+err.Error(), 1)
 	}
+	fmt.Println("finish uninstall")
 	return nil
 }
 
