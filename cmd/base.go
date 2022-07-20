@@ -27,6 +27,11 @@ var (
 			Action:    base.CommandListRemote,
 		},
 		{
+			Name:   "clear",
+			Usage:  "clear meta-data html",
+			Action: base.CommandClearCache,
+		},
+		{
 			Name:      "active",
 			Usage:     "Switch to specified version",
 			UsageText: "govm active <version>",

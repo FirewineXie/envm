@@ -126,7 +126,10 @@ func CommandListRemote(ctx *cli.Context) error {
 	}
 
 	return cli.ShowSubcommandHelp(ctx)
+}
 
+func CommandClearCache(ctx *cli.Context) error {
+	return os.Remove(filepath.Join(config.Default().Root, "meta-page.html"))
 }
 
 // CommandListInstalled 展示已经安装的go 版本
