@@ -27,6 +27,7 @@ func Execute() {
 
 		err = os.MkdirAll(config.Default().Download, 0777)
 		if err != nil {
+			config.SaveSettings()
 			return cli.NewExitError("download path error", 1)
 		}
 

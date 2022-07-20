@@ -3,7 +3,6 @@ package config
 import (
 	"github.com/FirewineXie/govm/inner/arch"
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -19,7 +18,7 @@ var root = filepath.Clean(os.Getenv("GOVM_HOME"))
 var symlink = filepath.Clean(os.Getenv("GOVM_SYMLINK"))
 
 var env = GoVmConfig{
-	Settings: path.Clean(path.Join(root, "settings")),
+	Settings: filepath.Join(root, "settings"),
 	Root:     root,
 	Symlink:  symlink,
 	Arch:     arch.Validate(""),
