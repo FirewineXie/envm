@@ -27,13 +27,11 @@ func Execute() {
 			fmt.Println("please set GOVM_HOME and GOVM_SYMLINK")
 			return errors.New("env not set")
 		}
-		fmt.Println(os.Getenv("GOVM_HOME"))
 		return nil
 	}
 	app.Commands = commands
 
 	app.After = func(ctx *cli.Context) error {
-
 		config.SaveSettings()
 		return nil
 	}

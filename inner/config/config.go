@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"github.com/FirewineXie/govm/inner/arch"
+	"github.com/urfave/cli"
 	"os"
 	"path/filepath"
 )
@@ -22,11 +24,13 @@ var env = GoVmConfig{
 	Root:        root,
 	Symlink:     symlink,
 	Arch:        arch.Validate(),
-	Downloads:   filepath.Join(root, "downloads"),
 }
 
 func Default() GoVmConfig {
 	ReadSettings()
+	if env.Downloads == "" {
+		env.Downloads = filepath.Join(root, "downloads")
+	}
 	return env
 }
 
@@ -41,4 +45,17 @@ func VerifyEnv() bool {
 		return false
 	}
 	return true
+}
+
+func SetDownloads(ctx *cli.Context) {
+	configDownloads := ctx.Args().First()
+	configContent := ctx.Args().Get(1)
+
+	if configDownloads == "downloads" {
+		env.Downloads = configContent
+
+	} else {
+		fmt.Println("暂不支持其他操作")
+	}
+
 }

@@ -8,13 +8,12 @@
 
 1. 在电脑自己目录下面新建 .govm 文件夹
 2. 在系统变量设置
-   1. `GOVM_HOME`  example :  C:\Users\username\.govm
-   2. `GOVM_SYMLINK` example : C:\Users\username\.govm\go
+    1. `GOVM_HOME`  example :  C:\Users\username\.govm
+    2. `GOVM_SYMLINK` example : C:\Users\username\.govm\go
 
 3. 尝试运行govm 是否可以正常运行 example: govm arch
 4. 在`GOVM_HOME`里面修改settings配置文件，
-   1. 暂时只支持修改安装目录
-
+    1. 暂时只支持修改下载目录
 
 ## 尾注
 
