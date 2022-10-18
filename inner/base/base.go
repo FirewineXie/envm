@@ -22,7 +22,7 @@ func CommandUninstall(ctx *cli.Context) error {
 	if versionS == version {
 		return cli.NewExitError("不能卸载当前版本", 1)
 	}
-	err := os.RemoveAll(filepath.Join(config.Default().Download, "go"+versionS))
+	err := os.RemoveAll(filepath.Join(config.Default().Downloads, "go"+versionS))
 	if err != nil {
 		return cli.NewExitError("删除该版本失败+"+err.Error(), 1)
 	}
@@ -45,11 +45,11 @@ func CommandInstall(ctx *cli.Context) error {
 			break
 		}
 	}
-	findPackage, err := version.FindPackage(web.ArchiveKind, runtime.GOOS, arch.Validate(""))
+	findPackage, err := version.FindPackage(web.ArchiveKind, runtime.GOOS, arch.Validate())
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("find version of system error + %v", err), 1)
 	}
-	downloadPath := filepath.Clean(filepath.Join(config.Default().Download, findPackage.FileName))
+	downloadPath := filepath.Clean(filepath.Join(config.Default().Downloads, findPackage.FileName))
 	findPackage.URL = "https://dl.google.com/go" + "/" + findPackage.FileName
 	err = findPackage.DownloadV2(downloadPath)
 	if err != nil {
@@ -61,13 +61,13 @@ func CommandInstall(ctx *cli.Context) error {
 	}
 
 	// 解压安装包
-	unchivePath := filepath.Clean(filepath.Join(config.Default().Download))
+	unchivePath := filepath.Clean(filepath.Join(config.Default().Downloads))
 	if err = archiver.Unarchive(downloadPath, unchivePath); err != nil {
 		return cli.NewExitError(fmt.Sprintf(" %s", err.Error()), 1)
 	}
 	err = os.Remove(downloadPath)
 	// 目录重命名
-	if err = os.Rename(filepath.Join(unchivePath, "go"), filepath.Clean(filepath.Join(config.Default().Download, "go"+versionS))); err != nil {
+	if err = os.Rename(filepath.Join(unchivePath, "go"), filepath.Clean(filepath.Join(config.Default().Downloads, "go"+versionS))); err != nil {
 		return cli.NewExitError(fmt.Sprintf(" %s", err.Error()), 1)
 	}
 	fmt.Println("Installed successfully")
@@ -84,7 +84,7 @@ func CommandUse(ctx *cli.Context) error {
 	// active use
 	_ = os.Remove(config.Default().Symlink)
 
-	if err := os.Symlink(path.Join(config.Default().Download, "go"+v), config.Default().Symlink); err != nil {
+	if err := os.Symlink(path.Join(config.Default().Downloads, "go"+v), config.Default().Symlink); err != nil {
 		return cli.NewExitError(fmt.Sprintf("%s", err.Error()), 1)
 	}
 	output, err := exec.Command("go", "version").Output()
@@ -136,7 +136,7 @@ func CommandClearCache(ctx *cli.Context) error {
 func CommandListInstalled(ctx *cli.Context) {
 	in := getCurrentVersion()
 
-	v := getInstalled(config.Default().Download)
+	v := getInstalled(config.Default().Downloads)
 
 	for i := 0; i < len(v); i++ {
 		version := v[i]

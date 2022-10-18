@@ -5,7 +5,7 @@ import (
 )
 
 func TestSaveSettings(t *testing.T) {
-	env.Settings = "testdata/settings"
+	env.SettingPath = "testdata/settings"
 	env.Root = "D:\\ProgramData\\Go"
 	SaveSettings()
 }

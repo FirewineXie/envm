@@ -73,7 +73,7 @@ func (c *Collector) loadDocument() (err error) {
 		}
 		b := new(bytes.Buffer)
 		_, _ = io.Copy(b, resp.Body)
-		ioutil.WriteFile(filepath.Join(config.Default().Root, "meta-page.html"), b.Bytes(), 0655)
+		ioutil.WriteFile(filepath.Join(config.Default().Downloads, "meta-page.html"), b.Bytes(), 0655)
 		c.doc, err = goquery.NewDocumentFromReader(resp.Body)
 		return err
 	}

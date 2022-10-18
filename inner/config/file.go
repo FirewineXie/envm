@@ -11,7 +11,7 @@ import (
 
 func SaveSettings() {
 	marshal, _ := json.Marshal(env)
-	err := ioutil.WriteFile(env.Settings, []byte(marshal), 0644)
+	err := ioutil.WriteFile(env.SettingPath, []byte(marshal), 0644)
 	if err != nil {
 		log.Fatalf("save setting error + %v", err.Error())
 		return
@@ -20,14 +20,14 @@ func SaveSettings() {
 
 func ReadSettings() {
 
-	if _, err := os.Stat(env.Settings); err != nil {
+	if _, err := os.Stat(env.SettingPath); err != nil {
 		if os.IsNotExist(err) {
 			fmt.Println("settings does not exist")
 		} else {
 			fmt.Println("please check settings file")
 		}
 	} else {
-		file, err := ioutil.ReadFile(env.Settings)
+		file, err := ioutil.ReadFile(env.SettingPath)
 		if err != nil {
 			log.Fatalf("read setting error + %v", err.Error())
 			return
@@ -38,12 +38,8 @@ func ReadSettings() {
 			return
 		}
 
-		if val, ok := m["root"]; ok {
-			env.Root = filepath.Clean(val)
-		}
-
 		if val, ok := m["download"]; ok {
-			env.Download = filepath.Clean(val)
+			env.Downloads = filepath.Clean(val)
 		}
 		// Make sure the directories exist
 		_, e := os.Stat(env.Root)

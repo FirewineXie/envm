@@ -7,23 +7,38 @@ import (
 )
 
 type GoVmConfig struct {
-	Settings string `json:"settings"` // 配置文件  ${HOME}/.govm/settings
-	Root     string `json:"root"`     // 路径 存储位置  ${HOME}/.govm/
-	Symlink  string `json:"symlink"`  // 默认  ${HOME}/.govm/go
-	Arch     string `json:"arch"`     // 系统arch
-	Download string `json:"download"` // 默认为 ${HOME}/.govm/download   // 可以进行修改
+	SettingPath string `json:"setting_path"` // 配置文件名称
+	Root        string `json:"root"`         // 执行命令位置
+	Symlink     string `json:"symlink"`      // 链接位置
+	Arch        string `json:"arch"`         // 系统arch
+	Downloads   string `json:"downloads"`    // 下载目录
 }
 
 var root = filepath.Clean(os.Getenv("GOVM_HOME"))
 var symlink = filepath.Clean(os.Getenv("GOVM_SYMLINK"))
 
 var env = GoVmConfig{
-	Settings: filepath.Join(root, "settings"),
-	Root:     root,
-	Symlink:  symlink,
-	Arch:     arch.Validate(""),
+	SettingPath: filepath.Join(root, "settings"),
+	Root:        root,
+	Symlink:     symlink,
+	Arch:        arch.Validate(),
+	Downloads:   filepath.Join(root, "downloads"),
 }
 
 func Default() GoVmConfig {
+	ReadSettings()
 	return env
+}
+
+func VerifyEnv() bool {
+	if root == "settings" {
+		return false
+	}
+	if symlink == "" {
+		return false
+	}
+	if env.Arch == "" {
+		return false
+	}
+	return true
 }

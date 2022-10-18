@@ -6,6 +6,6 @@ import (
 )
 
 func TestValidate(t *testing.T) {
-	fmt.Println(Validate(""))
+	fmt.Println(Validate())
 
 }

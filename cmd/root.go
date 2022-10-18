@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/FirewineXie/govm/inner/config"
 	"github.com/urfave/cli"
@@ -20,17 +21,13 @@ func Execute() {
 			Name: "Firewine",
 		},
 	}
-	// 加载配置
+	// 校验配置环境是否完好
 	app.Before = func(ctx *cli.Context) (err error) {
-
-		config.ReadSettings()
-
-		err = os.MkdirAll(config.Default().Download, 0777)
-		if err != nil {
-			config.SaveSettings()
-			return cli.NewExitError("download path error", 1)
+		if !config.VerifyEnv() {
+			fmt.Println("please set GOVM_HOME and GOVM_SYMLINK")
+			return errors.New("env not set")
 		}
-
+		fmt.Println(os.Getenv("GOVM_HOME"))
 		return nil
 	}
 	app.Commands = commands
