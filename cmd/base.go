@@ -3,19 +3,12 @@ package cmd
 import (
 	"github.com/FirewineXie/govm/inner/arch"
 	"github.com/FirewineXie/govm/inner/base"
-	"github.com/FirewineXie/govm/inner/config"
 	"github.com/urfave/cli"
 )
 
 var (
 	commands = []cli.Command{
-		{
-			Name:        "config",
-			Usage:       "config downloads",
-			UsageText:   "govm config downloads",
-			Description: "only set ,not judge it is valid",
-			Action:      config.SetDownloads,
-		},
+
 		{
 			Name:      "arch",
 			Usage:     "systemc arch",
@@ -33,11 +26,6 @@ var (
 			Usage:     "List remote versions available for install",
 			UsageText: "govm lsr [stable|archived]",
 			Action:    base.CommandListRemote,
-		},
-		{
-			Name:   "clear",
-			Usage:  "clear meta-data html",
-			Action: base.CommandClearCache,
 		},
 		{
 			Name:      "active",

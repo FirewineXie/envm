@@ -54,9 +54,15 @@ func NewCollector(url string) (*Collector, error) {
 	c := Collector{
 		url: url,
 	}
-	if err := c.loadDocument(); err != nil {
+	resp, err := http.Get(c.url)
+	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, NewURLUnreachableError(c.url, nil)
+	}
+	c.doc, err = goquery.NewDocumentFromReader(resp.Body)
 	return &c, nil
 }
 

@@ -50,7 +50,7 @@ func CommandInstall(ctx *cli.Context) error {
 		return cli.NewExitError(fmt.Sprintf("find version of system error + %v", err), 1)
 	}
 	downloadPath := filepath.Clean(filepath.Join(config.Default().Downloads, findPackage.FileName))
-	findPackage.URL = "https://dl.google.com/go" + "/" + findPackage.FileName
+	findPackage.URL = "https://golang.google.cn" + findPackage.URL
 	err = findPackage.DownloadV2(downloadPath)
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("download version error + %v", err), 1)
@@ -83,7 +83,7 @@ func CommandUse(ctx *cli.Context) error {
 	}
 	// active use
 	_ = os.Remove(config.Default().Symlink)
-
+	fmt.Println(path.Join(config.Default().Downloads, "go"+v), config.Default().Symlink)
 	if err := os.Symlink(path.Join(config.Default().Downloads, "go"+v), config.Default().Symlink); err != nil {
 		return cli.NewExitError(fmt.Sprintf("%s", err.Error()), 1)
 	}

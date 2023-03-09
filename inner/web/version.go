@@ -37,6 +37,9 @@ var ErrPackageNotFound = errors.New("installation package not found")
 
 // FindPackage 返回指定操作系统和硬件架构的版本包
 func (v *Version) FindPackage(kind, goos, goarch string) (*Package, error) {
+	if goos == "linux" && goarch == "x86_64" {
+		goarch = "386"
+	}
 	prefix := fmt.Sprintf("go%s.%s-%s", v.Name, goos, goarch)
 	for i := range v.Packages {
 		if v.Packages[i] == nil || !strings.EqualFold(v.Packages[i].Kind, kind) || !strings.HasPrefix(v.Packages[i].FileName, prefix) {

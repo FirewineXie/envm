@@ -31,10 +31,6 @@ func Execute() {
 	}
 	app.Commands = commands
 
-	app.After = func(ctx *cli.Context) error {
-		config.SaveSettings()
-		return nil
-	}
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "[g] %s\n", err.Error())
 		os.Exit(1)
