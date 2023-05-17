@@ -16,13 +16,12 @@ type GoVmConfig struct {
 
 var root = filepath.Clean(os.Getenv("GOVM_HOME"))
 var symlink = filepath.Clean(os.Getenv("GOVM_SYMLINK"))
-var downloads = filepath.Clean(os.Getenv("GOVM_DOWNLOAD"))
 
 var env = GoVmConfig{
 	Root:      root,
 	Symlink:   symlink,
 	Arch:      arch.Validate(),
-	Downloads: downloads,
+	Downloads: root + "/downloads",
 }
 
 func Default() GoVmConfig {

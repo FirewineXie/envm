@@ -1,13 +1,8 @@
 package web
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/FirewineXie/govm/inner/config"
-	"io"
-	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -67,24 +62,15 @@ func NewCollector(url string) (*Collector, error) {
 }
 
 func (c *Collector) loadDocument() (err error) {
-	file, err := ioutil.ReadFile(filepath.Join(config.Default().Root, "meta-page.html"))
+	resp, err := http.Get(c.url)
 	if err != nil {
-		resp, err := http.Get(c.url)
-		if err != nil {
-			return NewURLUnreachableError(c.url, err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return NewURLUnreachableError(c.url, nil)
-		}
-		b := new(bytes.Buffer)
-		_, _ = io.Copy(b, resp.Body)
-		ioutil.WriteFile(filepath.Join(config.Default().Downloads, "meta-page.html"), b.Bytes(), 0655)
-		c.doc, err = goquery.NewDocumentFromReader(resp.Body)
-		return err
+		return NewURLUnreachableError(c.url, err)
 	}
-	reader := bytes.NewReader(file)
-	c.doc, err = goquery.NewDocumentFromReader(reader)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return NewURLUnreachableError(c.url, nil)
+	}
+	c.doc, err = goquery.NewDocumentFromReader(resp.Body)
 	return err
 }
 
