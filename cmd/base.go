@@ -80,12 +80,6 @@ var (
 			Action:    commands_java.CommandListInstalled,
 		},
 		{
-			Name:      "lsr",
-			Usage:     "List remote versions available for install",
-			UsageText: "envm java lsr ",
-			Action:    commands_java.CommandListRemote,
-		},
-		{
 			Name:      "active",
 			Usage:     "Switch to specified version",
 			UsageText: "envm java active <version>",

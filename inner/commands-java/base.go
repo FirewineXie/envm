@@ -3,7 +3,6 @@ package commands_java
 import (
 	"fmt"
 	"github.com/FirewineXie/govm/inner/config"
-	web_go "github.com/FirewineXie/govm/inner/web-go"
 	"github.com/urfave/cli"
 	"os"
 	"os/exec"
@@ -50,40 +49,7 @@ func CommandUse(ctx *cli.Context) error {
 	return nil
 }
 
-// CommandListRemote 获取远程的可下载的版本
-func CommandListRemote(ctx *cli.Context) error {
-	versionType := ctx.Args().First()
-
-	collector, err := web_go.NewCollector("")
-	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("collect version error1 + %v", err), 1)
-	}
-	if versionType == "stable" {
-		versions, err := collector.StableVersions()
-		if err != nil {
-			return cli.NewExitError(fmt.Sprintf("collect version error2 + %v", err), 1)
-		}
-		for _, version := range versions {
-			fmt.Println(version.Name)
-		}
-		return nil
-	}
-	if versionType == "archived" {
-		versions, err := collector.ArchivedVersions()
-		if err != nil {
-
-			return err
-		}
-		for _, version := range versions {
-			fmt.Println(version.Name)
-		}
-		return nil
-	}
-
-	return cli.ShowSubcommandHelp(ctx)
-}
-
-// CommandListInstalled 展示已经安装的go 版本
+// CommandListInstalled 展示已经安装
 func CommandListInstalled(ctx *cli.Context) {
 	in := getCurrentVersion()
 
