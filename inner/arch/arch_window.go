@@ -12,7 +12,7 @@ func Validate() string {
 
 	str := os.Getenv("PROCESSOR_ARCHITECTURE")
 
-	return strings.ToLower(str)
+	return "windows \t" + strings.ToLower(str)
 }
 
 func GetArch() (string, error) {

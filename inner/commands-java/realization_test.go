@@ -1,4 +1,4 @@
-package base
+package commands_java
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 )
 
 func Test_getCurrentVersion(t *testing.T) {
-	Convey("验证go 当前版本", t, func() {
+	Convey("验证java当前版本", t, func() {
 		version := getCurrentVersion()
-		So(version, ShouldEqual, "go1.17.1")
+		So(version, ShouldEqual, "17.0.5")
 	})
 }
 

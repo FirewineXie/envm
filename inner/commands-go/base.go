@@ -1,10 +1,10 @@
-package base
+package commands_go
 
 import (
 	"fmt"
 	"github.com/FirewineXie/govm/inner/arch"
 	"github.com/FirewineXie/govm/inner/config"
-	"github.com/FirewineXie/govm/inner/web"
+	"github.com/FirewineXie/govm/inner/web-go"
 	"github.com/mholt/archiver"
 	"github.com/urfave/cli"
 	"os"
@@ -15,6 +15,8 @@ import (
 	"runtime"
 )
 
+var configLocal = config.Default().Settings[config.GO]
+
 func CommandUninstall(ctx *cli.Context) error {
 	versionS := ctx.Args().First()
 
@@ -22,7 +24,7 @@ func CommandUninstall(ctx *cli.Context) error {
 	if versionS == version {
 		return cli.NewExitError("不能卸载当前版本", 1)
 	}
-	err := os.RemoveAll(filepath.Join(config.Default().Downloads, "go"+versionS))
+	err := os.RemoveAll(filepath.Join(configLocal.Downloads, "go"+versionS))
 	if err != nil {
 		return cli.NewExitError("删除该版本失败+"+err.Error(), 1)
 	}
@@ -33,11 +35,11 @@ func CommandUninstall(ctx *cli.Context) error {
 // CommandInstall 安装命令
 func CommandInstall(ctx *cli.Context) error {
 	versionS := ctx.Args().First()
-	collector, err := web.NewCollector("")
+	collector, err := web_go.NewCollector("")
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("collect version error1 + %v", err), 1)
 	}
-	var version *web.Version
+	var version *web_go.Version
 	versions, err := collector.AllVersions()
 	for _, v := range versions {
 		if v.Name == versionS {
@@ -45,11 +47,11 @@ func CommandInstall(ctx *cli.Context) error {
 			break
 		}
 	}
-	findPackage, err := version.FindPackage(web.ArchiveKind, runtime.GOOS, arch.Validate())
+	findPackage, err := version.FindPackage(web_go.ArchiveKind, runtime.GOOS, arch.Validate())
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("find version of system error + %v", err), 1)
 	}
-	downloadPath := filepath.Clean(filepath.Join(config.Default().Downloads, findPackage.FileName))
+	downloadPath := filepath.Clean(filepath.Join(configLocal.Downloads, findPackage.FileName))
 	findPackage.URL = "https://golang.google.cn" + findPackage.URL
 	err = findPackage.DownloadV2(downloadPath)
 	if err != nil {
@@ -61,13 +63,13 @@ func CommandInstall(ctx *cli.Context) error {
 	}
 
 	// 解压安装包
-	unchivePath := filepath.Clean(filepath.Join(config.Default().Downloads))
+	unchivePath := filepath.Clean(filepath.Join(configLocal.Downloads))
 	if err = archiver.Unarchive(downloadPath, unchivePath); err != nil {
 		return cli.NewExitError(fmt.Sprintf(" %s", err.Error()), 1)
 	}
 	err = os.Remove(downloadPath)
 	// 目录重命名
-	if err = os.Rename(filepath.Join(unchivePath, "go"), filepath.Clean(filepath.Join(config.Default().Downloads, "go"+versionS))); err != nil {
+	if err = os.Rename(filepath.Join(unchivePath, "go"), filepath.Clean(filepath.Join(configLocal.Downloads, "go"+versionS))); err != nil {
 		return cli.NewExitError(fmt.Sprintf(" %s", err.Error()), 1)
 	}
 	fmt.Println("Installed successfully")
@@ -82,9 +84,9 @@ func CommandUse(ctx *cli.Context) error {
 		return err
 	}
 	// active use
-	_ = os.Remove(config.Default().Symlink)
-	fmt.Println(path.Join(config.Default().Downloads, "go"+v), config.Default().Symlink)
-	if err := os.Symlink(path.Join(config.Default().Downloads, "go"+v), config.Default().Symlink); err != nil {
+	_ = os.Remove(configLocal.Symlink)
+	fmt.Println(path.Join(configLocal.Downloads, "go"+v), configLocal.Symlink)
+	if err := os.Symlink(path.Join(configLocal.Downloads, "go"+v), configLocal.Symlink); err != nil {
 		return cli.NewExitError(fmt.Sprintf("%s", err.Error()), 1)
 	}
 	output, err := exec.Command("go", "version").Output()
@@ -99,7 +101,7 @@ func CommandUse(ctx *cli.Context) error {
 func CommandListRemote(ctx *cli.Context) error {
 	versionType := ctx.Args().First()
 
-	collector, err := web.NewCollector("")
+	collector, err := web_go.NewCollector("")
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("collect version error1 + %v", err), 1)
 	}
@@ -128,15 +130,12 @@ func CommandListRemote(ctx *cli.Context) error {
 	return cli.ShowSubcommandHelp(ctx)
 }
 
-func CommandClearCache(ctx *cli.Context) error {
-	return os.Remove(filepath.Join(config.Default().Root, "meta-page.html"))
-}
 
 // CommandListInstalled 展示已经安装的go 版本
 func CommandListInstalled(ctx *cli.Context) {
 	in := getCurrentVersion()
 
-	v := getInstalled(config.Default().Downloads)
+	v := getInstalled(configLocal.Downloads)
 
 	for i := 0; i < len(v); i++ {
 		version := v[i]

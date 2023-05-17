@@ -1,4 +1,4 @@
-package base
+package commands_java
 
 import (
 	. "github.com/smartystreets/goconvey/convey"

@@ -1,8 +1,7 @@
-package base
+package commands_java
 
 import (
 	"errors"
-	"github.com/FirewineXie/govm/inner/config"
 	"github.com/blang/semver"
 	"github.com/urfave/cli"
 	"io/ioutil"
@@ -21,7 +20,7 @@ func getVersion(ctx *cli.Context, localInstallsOnly ...bool) (string, error) {
 
 	// 如果是true ,那么本地寻找 这个版本
 	if localInstallsOnly[0] {
-		installed := getInstalled(config.Default().Downloads)
+		installed := getInstalled(configLocal.Downloads)
 		for _, installVersion := range installed {
 			if installVersion == version {
 				return version, nil
@@ -33,15 +32,16 @@ func getVersion(ctx *cli.Context, localInstallsOnly ...bool) (string, error) {
 
 // 获取当前版本
 func getCurrentVersion() (version string) {
-	cmd := exec.Command("go", "version")
+	cmd := exec.Command("java", "--version")
 	str, err := cmd.Output()
 	if err != nil {
 		return "Unknown"
 	}
 
-	split := strings.Split(string(str), " ")
-	if len(split) > 3 {
-		return split[2]
+	split := strings.Split(string(str), "\n")
+	if len(split) > 1 {
+		itemp := strings.Split(split[0], " ")
+		return itemp[1]
 	}
 	return string(str)
 
@@ -53,9 +53,9 @@ func getInstalled(root string) []string {
 	files, _ := ioutil.ReadDir(path.Clean(root))
 	for i := len(files) - 1; i >= 0; i-- {
 		if files[i].IsDir() {
-			isGo, _ := regexp.MatchString("go", files[i].Name())
+			isGo, _ := regexp.MatchString("java", files[i].Name())
 			if isGo {
-				currentVersionString := strings.Replace(files[i].Name(), "go", "", 1)
+				currentVersionString := strings.Replace(files[i].Name(), "java", "", 1)
 				if currentVersion, err := semver.Make(currentVersionString); err == nil {
 					list = append(list, currentVersion)
 				}

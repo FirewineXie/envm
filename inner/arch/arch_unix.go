@@ -12,7 +12,7 @@ func Validate() string {
 
 	arch, _ := GetArch()
 
-	return strings.ToLower(strings.Replace(arch, "\n", "", -1))
+	return "unix \t" + strings.ToLower(strings.Replace(arch, "\n", "", -1))
 
 }
 
