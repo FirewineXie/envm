@@ -42,12 +42,21 @@ func init() {
 			goSymlink,
 			filepath.Join(env.Downloads, "go"),
 		}
+		pathExists, _ := util.PathExists(env.Settings[GO].Downloads)
+		if !pathExists {
+			_ = os.Mkdir(env.Settings[GO].Downloads, os.ModePerm)
+		}
+
 	}
 
 	if javaSymlink != "" {
 		env.Settings[JAVA] = SubConfig{
 			javaSymlink,
 			filepath.Join(env.Downloads, "java"),
+		}
+		pathExists, _ := util.PathExists(env.Settings[JAVA].Downloads)
+		if !pathExists {
+			_ = os.Mkdir(env.Settings[JAVA].Downloads, os.ModePerm)
 		}
 	}
 

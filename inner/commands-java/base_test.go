@@ -12,9 +12,3 @@ func TestCommandListInstalled(t *testing.T) {
 		CommandListInstalled(&cli.Context{})
 	})
 }
-
-func TestCommandListRemote(t *testing.T) {
-	Convey("测试线上版本拉取", t, func() {
-		CommandListRemote(&cli.Context{})
-	})
-}

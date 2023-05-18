@@ -59,7 +59,7 @@ func CommandListInstalled(ctx *cli.Context) {
 		version := v[i]
 
 		str := ""
-		goVersion := fmt.Sprintf("go%v", version)
+		goVersion := fmt.Sprintf("java%v", version)
 		if in == goVersion {
 			str = str + "  * "
 		} else {
