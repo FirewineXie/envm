@@ -1,4 +1,4 @@
-package web_go
+package web_java
 
 import (
 	"fmt"
@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	// DefaultURL
-	DefaultURL = "https://golang.google.cn/dl/"
+	DefaultURL = "https://www.oracle.com/cn/java/technologies/downloads/archive/"
 )
 
 // URLUnreachableError URL不可达错误
@@ -74,65 +73,94 @@ func (c *Collector) loadDocument() (err error) {
 	return err
 }
 
-func (c *Collector) findPackages(table *goquery.Selection) (pkgs []*Package) {
-	alg := strings.TrimSuffix(table.Find("thead").Find("th").Last().Text(), " Checksum")
+// LatestSubPackage Compressed Archive
+// 找到第一个就返回
+func (c *Collector) LatestSubPackage(goos, goarch string) (p *Package, err error) {
+	var packageUrl string
+	var sha256 string
+	title := strings.Title(goos)
+	c.doc.Find("table.otable-w2").Each(func(i int, div *goquery.Selection) {
+		div.Find("tr").Find("td").Each(func(i int, selection *goquery.Selection) {
 
-	table.Find("tr").Not(".first").Each(func(j int, tr *goquery.Selection) {
-		td := tr.Find("td")
-		pkgs = append(pkgs, &Package{
-			FileName:  td.Eq(0).Find("a").Text(),
-			URL:       td.Eq(0).Find("a").AttrOr("href", ""),
-			Kind:      td.Eq(1).Text(),
-			OS:        td.Eq(2).Text(),
-			Arch:      td.Eq(3).Text(),
-			Size:      td.Eq(4).Text(),
-			Checksum:  td.Eq(5).Text(),
-			Algorithm: alg,
+			if packageUrl != "" {
+				return
+			}
+			product := selection.Text()
+			// 只下载压缩文件
+			//cases.Title(goos,cases.Option())
+
+			if strings.Contains(product, "Compressed Archive") && strings.Contains(product, title) {
+				nodes := selection.Find("a").Nodes
+				if len(nodes) > 1 {
+
+					newPackageUrl := nodes[0].Attr[0].Val
+					newSha256 := nodes[1].Attr[0].Val
+					// 判断版本是否一样
+					if strings.Contains(packageUrl, goarch) {
+						packageUrl = newPackageUrl
+						sha256 = newSha256
+					}
+				}
+			}
+
 		})
+
 	})
-	return pkgs
+	p = &Package{}
+	p.URL = packageUrl
+	p.Algorithm = "sha256"
+	p.Checksum = sha256
+	p.OS = goos
+	p.Arch = goarch
+	return
+
 }
 
-// StableVersions 返回所有稳定版本
-func (c *Collector) StableVersions() (items []*Version, err error) {
-	c.doc.Find("#stable").NextUntil("#archive").Each(func(i int, div *goquery.Selection) {
-		vname, ok := div.Attr("id")
+//func (c *Collector) findPackages(table *goquery.Selection) (pkgs []*Package) {
+//	table.Find("tr").Find("td").Each(func(i int, selection *goquery.Selection) {
+//		nodes := selection.Find("a").Nodes
+//		if len(nodes) > 1 {
+//			packgeUrl := nodes[0].Attr[0].Val
+//			sha256 := nodes[1].Attr[0].Val
+//			pkgs = append(pkgs, &Package{
+//				FileName:  td.Eq(0).Find("a").Text(),
+//				URL:       nodes[0].Attr[0].Val,
+//				Kind:      td.Eq(1).Text(),
+//				OS:        td.Eq(2).Text(),
+//				Arch:      td.Eq(3).Text(),
+//				Size:      td.Eq(4).Text(),
+//				Checksum:  td.Eq(5).Text(),
+//				Algorithm: "sha256",
+//			})
+//
+//		}
+//
+//	})
+//	return pkgs
+//}
+
+// LatestFiveVersion 返回最新的5个大版本
+func (c *Collector) LatestFiveVersion() (items []*Version, err error) {
+	var stopInt int
+	c.doc.Find("ul.icn-ulist").Find("li.icn-chevron-right").Each(func(i int, div *goquery.Selection) {
+		versionDescribe := div.Find("a").Text()
+		val, ok := div.Find("a").Attr("href")
 		if !ok {
 			return
 		}
-		items = append(items, &Version{
-			Name:     strings.TrimPrefix(vname, "go"),
-			Packages: c.findPackages(div.Find("table").First()),
-		})
-	})
-	return items, nil
-}
-
-// ArchivedVersions 返回已归档版本
-func (c *Collector) ArchivedVersions() (items []*Version, err error) {
-	c.doc.Find("#archive").Find("div.toggle").Each(func(i int, div *goquery.Selection) {
-		vname, ok := div.Attr("id")
-		if !ok {
+		version := strings.TrimPrefix(versionDescribe, "Java SE ")
+		version = strings.Replace(version, "\n", " ", -1)
+		if version == "7" {
+			stopInt = i
+			return
+		}
+		if stopInt != 0 {
 			return
 		}
 		items = append(items, &Version{
-			Name:     strings.TrimPrefix(vname, "go"),
-			Packages: c.findPackages(div.Find("table").First()),
+			Name: version,
+			Url:  "https://www.oracle.com/" + val,
 		})
 	})
-	return items, nil
-}
-
-// AllVersions 返回所有已知版本
-func (c *Collector) AllVersions() (items []*Version, err error) {
-	items, err = c.StableVersions()
-	if err != nil {
-		return nil, err
-	}
-	archives, err := c.ArchivedVersions()
-	if err != nil {
-		return nil, err
-	}
-	items = append(items, archives...)
 	return items, nil
 }

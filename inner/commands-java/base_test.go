@@ -12,3 +12,17 @@ func TestCommandListInstalled(t *testing.T) {
 		CommandListInstalled(&cli.Context{})
 	})
 }
+
+func TestCommandListRemote(t *testing.T) {
+	Convey("测试 标记", t, func() {
+
+		CommandListRemote(&cli.Context{})
+	})
+}
+
+func TestCommandInstall(t *testing.T) {
+	Convey("测试 标记", t, func() {
+
+		CommandInstall(&cli.Context{})
+	})
+}

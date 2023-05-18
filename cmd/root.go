@@ -13,7 +13,7 @@ func Execute() {
 	app := cli.NewApp()
 	app.Name = "envm"
 	app.Usage = "Any More Version Manager"
-	app.Version = "v1.0.0"
+	app.Version = "v1.0.1"
 	app.Description = `
 			java & go  version manager
      `

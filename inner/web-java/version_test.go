@@ -1,4 +1,4 @@
-package web_go
+package web_java
 
 import (
 	"crypto/sha1"

@@ -1,4 +1,4 @@
-package web_go
+package web_java
 
 import (
 	"crypto/sha1"
@@ -26,9 +26,10 @@ func FindVersion(all []*Version, name string) (*Version, error) {
 	return nil, ErrVersionNotFound
 }
 
-// Version go版本
+// Version 大版本
 type Version struct {
 	Name     string // 版本名，如'1.12.4'
+	Url      string
 	Packages []*Package
 }
 
@@ -36,16 +37,24 @@ type Version struct {
 var ErrPackageNotFound = errors.New("installation package not found")
 
 // FindPackage 返回指定操作系统和硬件架构的版本包
-func (v *Version) FindPackage(kind, goos, goarch string) (*Package, error) {
-	if goos == "linux" && goarch == "x86_64" {
-		goarch = "386"
+func (v *Version) FindPackage(version, goos, goarch string) (*Package, error) {
+	//if goos == "linux" && goarch == "x86_64" {
+	//	goarch = "386"
+	//}
+	if goarch == "amd64" {
+		goarch = "x64"
 	}
-	prefix := fmt.Sprintf("go%s.%s-%s", v.Name, goos, goarch)
-	for i := range v.Packages {
-		if v.Packages[i] == nil || !strings.EqualFold(v.Packages[i].Kind, kind) || !strings.HasPrefix(v.Packages[i].FileName, prefix) {
-			continue
-		}
-		return v.Packages[i], nil
+	newCollector, err := NewCollector(v.Url)
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := newCollector.LatestSubPackage(goos, goarch)
+	if err != nil {
+		return nil, err
+	}
+	if p.URL != "" {
+		return p, nil
 	}
 	return nil, ErrPackageNotFound
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/blang/semver"
 	"github.com/urfave/cli"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"path"
 	"regexp"
@@ -50,12 +50,14 @@ func getCurrentVersion() (version string) {
 // 获取下载的版本列表
 func getInstalled(root string) []string {
 	list := make([]semver.Version, 0)
-	files, _ := ioutil.ReadDir(path.Clean(root))
-	for i := len(files) - 1; i >= 0; i-- {
-		if files[i].IsDir() {
-			isGo, _ := regexp.MatchString("java", files[i].Name())
+	entries, _ := os.ReadDir(path.Clean(root))
+
+	for _, entry := range entries {
+
+		if entry.IsDir() {
+			isGo, _ := regexp.MatchString("jdk", entry.Name())
 			if isGo {
-				currentVersionString := strings.Replace(files[i].Name(), "java", "", 1)
+				currentVersionString := strings.Replace(entry.Name(), "jdk-", "", 1)
 				if currentVersion, err := semver.Make(currentVersionString); err == nil {
 					list = append(list, currentVersion)
 				}

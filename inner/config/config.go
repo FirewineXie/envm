@@ -37,7 +37,7 @@ func init() {
 		_ = os.Mkdir(env.Downloads, os.ModePerm)
 	}
 
-	if goSymlink != "" {
+	if goSymlink != "." {
 		env.Settings[GO] = SubConfig{
 			goSymlink,
 			filepath.Join(env.Downloads, "go"),
@@ -49,7 +49,7 @@ func init() {
 
 	}
 
-	if javaSymlink != "" {
+	if javaSymlink != "." {
 		env.Settings[JAVA] = SubConfig{
 			javaSymlink,
 			filepath.Join(env.Downloads, "java"),
@@ -72,7 +72,7 @@ func Default() EnvmConfig {
 }
 
 func VerifyEnv() error {
-	if root == "" {
+	if root == "." {
 		return errors.New("root 路径不能为空，请配置  ENVM_HOME 为当前执行程序路径")
 	}
 	if env.Arch == "" {
@@ -86,7 +86,7 @@ func VerifyEnvGo() error {
 	symlink := env.Settings[GO].Symlink
 
 	if symlink == "" {
-		return errors.New("")
+		return errors.New("请先配置 ENVM_GO_SYMLINK")
 	}
 	return nil
 }
@@ -95,7 +95,7 @@ func VerifyEnvJava() error {
 	symlink := env.Settings[JAVA].Symlink
 
 	if symlink == "" {
-		return errors.New("")
+		return errors.New("请先配置 ENVM_JAVA_SYMLINK")
 	}
 	return nil
 }
