@@ -44,7 +44,7 @@ func CommandUse(ctx *cli.Context) error {
 	if err := os.Symlink(path.Join(configLocal.Downloads, "jdk-"+v), configLocal.Symlink); err != nil {
 		return cli.NewExitError(fmt.Sprintf("%s", err.Error()), 1)
 	}
-	output, err := exec.Command("java", "version").Output()
+	output, err := exec.Command("java", "--version").Output()
 	if err != nil {
 		return err
 	}
