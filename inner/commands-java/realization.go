@@ -2,12 +2,11 @@ package commands_java
 
 import (
 	"errors"
-	"github.com/blang/semver"
 	"github.com/urfave/cli"
 	"os"
 	"os/exec"
 	"path"
-	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -49,32 +48,18 @@ func getCurrentVersion() (version string) {
 
 // 获取下载的版本列表
 func getInstalled(root string) []string {
-	list := make([]semver.Version, 0)
+	list := make([]string, 0)
 	entries, _ := os.ReadDir(path.Clean(root))
-
 	for _, entry := range entries {
 
 		if entry.IsDir() {
-			isGo, _ := regexp.MatchString("jdk", entry.Name())
-			if isGo {
-				currentVersionString := strings.Replace(entry.Name(), "jdk-", "", 1)
-				if currentVersion, err := semver.Make(currentVersionString); err == nil {
-					list = append(list, currentVersion)
-				}
-
+			if strings.HasPrefix(entry.Name(), "jdk-") || strings.HasPrefix(entry.Name(), "graalvm-jdk-") {
+				list = append(list, entry.Name())
 			}
 		}
 	}
-
-	semver.Sort(list)
-
-	loggableList := make([]string, 0)
-
-	for _, version := range list {
-		loggableList = append(loggableList, version.String())
-	}
-	loggableList = reverseStringArray(loggableList)
-	return loggableList
+	sort.Strings(list)
+	return list
 }
 
 func reverseStringArray(str []string) []string {
