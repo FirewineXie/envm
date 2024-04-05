@@ -1,8 +1,7 @@
-package base
+package commands_go
 
 import (
 	"errors"
-	"github.com/FirewineXie/govm/inner/config"
 	"github.com/blang/semver"
 	"github.com/urfave/cli"
 	"io/ioutil"
@@ -21,7 +20,7 @@ func getVersion(ctx *cli.Context, localInstallsOnly ...bool) (string, error) {
 
 	// 如果是true ,那么本地寻找 这个版本
 	if localInstallsOnly[0] {
-		installed := getInstalled(config.Default().Downloads)
+		installed := getInstalled(configLocal.Downloads)
 		for _, installVersion := range installed {
 			if installVersion == version {
 				return version, nil

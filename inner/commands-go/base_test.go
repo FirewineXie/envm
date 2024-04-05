@@ -1,4 +1,4 @@
-package base
+package commands_go
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
