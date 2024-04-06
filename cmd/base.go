@@ -43,7 +43,7 @@ var (
 			Usage:     "envm node",
 			UsageText: "envm node",
 			Before: func(context *cli.Context) error {
-				return config.VerifyEnvJava()
+				return config.VerifyEnvNode()
 			},
 			Subcommands: nodeCommands,
 		},

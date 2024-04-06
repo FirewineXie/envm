@@ -98,6 +98,9 @@ func CommandUse(ctx *cli.Context) error {
 		return err
 	}
 	// active use
+	if configLocal.Symlink == "" {
+		return cli.NewExitError("not config symlink", 1)
+	}
 	_ = os.Remove(configLocal.Symlink)
 	fmt.Println(path.Join(configLocal.Downloads, "node"+v), configLocal.Symlink)
 	if err := os.Symlink(path.Join(configLocal.Downloads, "node"+v), configLocal.Symlink); err != nil {
