@@ -2,17 +2,22 @@ package config
 
 import (
 	"errors"
-	"github.com/FirewineXie/govm/inner/arch"
-	"github.com/FirewineXie/govm/util"
+	"github.com/FirewineXie/envm/internal/arch"
+	"github.com/FirewineXie/envm/util"
+
 	"os"
 	"path/filepath"
 )
 
 type EnvmConfig struct {
-	Root      string               `json:"root"`      // root 目录
-	Arch      string               `json:"arch"`      // 系统arch
-	Downloads string               `json:"downloads"` // 下载目录
-	Settings  map[string]SubConfig `json:"settings"`
+	Root        string `json:"root"`      // root 目录
+	Arch        string `json:"arch"`      // 系统arch
+	Downloads   string `json:"downloads"` // 下载目录
+	LinkSetting map[string]SubConfig
+	Settings    Settings `json:"settings"`
+}
+
+type Settings struct {
 }
 
 type SubConfig struct {
@@ -23,11 +28,12 @@ type SubConfig struct {
 var root = filepath.Clean(os.Getenv("ENVM_HOME"))
 var goSymlink = filepath.Clean(os.Getenv("ENVM_GO_SYMLINK"))
 var javaSymlink = filepath.Clean(os.Getenv("ENVM_JAVA_SYMLINK"))
+var nodeSymlink = filepath.Clean(os.Getenv("ENVM_NODE_SYMLINK"))
 
 var env = EnvmConfig{
-	Root:     root,
-	Arch:     arch.Validate(),
-	Settings: map[string]SubConfig{},
+	Root:        root,
+	Arch:        arch.Validate(),
+	LinkSetting: map[string]SubConfig{},
 }
 
 func init() {
@@ -38,33 +44,43 @@ func init() {
 	}
 
 	if goSymlink != "." {
-		env.Settings[GO] = SubConfig{
+		env.LinkSetting[GO] = SubConfig{
 			goSymlink,
 			filepath.Join(env.Downloads, "go"),
 		}
-		pathExists, _ := util.PathExists(env.Settings[GO].Downloads)
+		pathExists, _ := util.PathExists(env.LinkSetting[GO].Downloads)
 		if !pathExists {
-			_ = os.Mkdir(env.Settings[GO].Downloads, os.ModePerm)
+			_ = os.Mkdir(env.LinkSetting[GO].Downloads, os.ModePerm)
 		}
 
 	}
 
 	if javaSymlink != "." {
-		env.Settings[JAVA] = SubConfig{
+		env.LinkSetting[JAVA] = SubConfig{
 			javaSymlink,
 			filepath.Join(env.Downloads, "java"),
 		}
-		pathExists, _ := util.PathExists(env.Settings[JAVA].Downloads)
+		pathExists, _ := util.PathExists(env.LinkSetting[JAVA].Downloads)
 		if !pathExists {
-			_ = os.Mkdir(env.Settings[JAVA].Downloads, os.ModePerm)
+			_ = os.Mkdir(env.LinkSetting[JAVA].Downloads, os.ModePerm)
 		}
 	}
-
+	if javaSymlink != "." {
+		env.LinkSetting[NODE] = SubConfig{
+			nodeSymlink,
+			filepath.Join(env.Downloads, "node"),
+		}
+		pathExists, _ := util.PathExists(env.LinkSetting[NODE].Downloads)
+		if !pathExists {
+			_ = os.Mkdir(env.LinkSetting[NODE].Downloads, os.ModePerm)
+		}
+	}
 }
 
 const (
 	GO   = "go"
 	JAVA = "java"
+	NODE = "node"
 )
 
 func Default() EnvmConfig {
@@ -83,7 +99,7 @@ func VerifyEnv() error {
 }
 
 func VerifyEnvGo() error {
-	symlink := env.Settings[GO].Symlink
+	symlink := env.LinkSetting[GO].Symlink
 
 	if symlink == "" {
 		return errors.New("请先配置 ENVM_GO_SYMLINK")
@@ -92,10 +108,18 @@ func VerifyEnvGo() error {
 }
 
 func VerifyEnvJava() error {
-	symlink := env.Settings[JAVA].Symlink
+	symlink := env.LinkSetting[JAVA].Symlink
 
 	if symlink == "" {
 		return errors.New("请先配置 ENVM_JAVA_SYMLINK")
+	}
+	return nil
+}
+func VerifyEnvNode() error {
+	symlink := env.LinkSetting[NODE].Symlink
+
+	if symlink == "" {
+		return errors.New("请先配置 ENVM_NODE_SYMLINK")
 	}
 	return nil
 }

@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/FirewineXie/govm/inner/config"
+	"github.com/FirewineXie/envm/internal/config"
+
 	"github.com/urfave/cli"
 	"os"
 )
@@ -13,9 +14,9 @@ func Execute() {
 	app := cli.NewApp()
 	app.Name = "envm"
 	app.Usage = "Any More Version Manager"
-	app.Version = "v1.0.1"
+	app.Version = "v1.0.2"
 	app.Description = `
-			java & go  version manager
+			java & go  & node  version manager
      `
 
 	app.Authors = []cli.Author{

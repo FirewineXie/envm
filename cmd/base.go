@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"github.com/FirewineXie/govm/inner/arch"
-	"github.com/FirewineXie/govm/inner/commands-go"
-	commands_java "github.com/FirewineXie/govm/inner/commands-java"
-	"github.com/FirewineXie/govm/inner/config"
+	"github.com/FirewineXie/envm/internal/arch"
+	"github.com/FirewineXie/envm/internal/commands/commands-go"
+	"github.com/FirewineXie/envm/internal/commands/commands-java"
+	"github.com/FirewineXie/envm/internal/commands/commands-node"
+	"github.com/FirewineXie/envm/internal/config"
 	"github.com/urfave/cli"
 )
 
@@ -37,31 +38,40 @@ var (
 			},
 			Subcommands: javaCommands,
 		},
+		{
+			Name:      "node",
+			Usage:     "envm node",
+			UsageText: "envm node",
+			Before: func(context *cli.Context) error {
+				return config.VerifyEnvJava()
+			},
+			Subcommands: nodeCommands,
+		},
 	}
 
 	goCommands = []cli.Command{
 		{
 			Name:      "ls",
 			Usage:     "List installed versions",
-			UsageText: "govm ls",
+			UsageText: "envm ls",
 			Action:    commands_go.CommandListInstalled,
 		},
 		{
 			Name:      "lsr",
 			Usage:     "List remote versions available for install",
-			UsageText: "govm lsr [stable|archived]",
+			UsageText: "envm lsr [stable|archived]",
 			Action:    commands_go.CommandListRemote,
 		},
 		{
 			Name:      "active",
 			Usage:     "Switch to specified version",
-			UsageText: "govm active <version>",
+			UsageText: "envm active <version>",
 			Action:    commands_go.CommandUse,
 		},
 		{
 			Name:      "install",
 			Usage:     "Download and install a <version>",
-			UsageText: "govm install <version>",
+			UsageText: "envm install <version>",
 			Action:    commands_go.CommandInstall,
 		},
 		{
@@ -90,6 +100,38 @@ var (
 			Usage:     "Uninstall a version",
 			UsageText: "envm java uninstall <version>",
 			Action:    commands_java.CommandUninstall,
+		},
+	}
+	nodeCommands = []cli.Command{
+		{
+			Name:      "ls",
+			Usage:     "envm node ls",
+			UsageText: "List installed versions",
+			Action:    commands_node.CommandListInstalled,
+		},
+		{
+			Name:      "lsr",
+			Usage:     "List remote versions available for install",
+			UsageText: "envm lsr [all|lts|current|stable|unstable]",
+			Action:    commands_node.CommandListRemote,
+		},
+		{
+			Name:      "active",
+			Usage:     "Switch to specified version",
+			UsageText: "envm active <version>",
+			Action:    commands_node.CommandUse,
+		},
+		{
+			Name:      "install",
+			Usage:     "Download and install a <version>",
+			UsageText: "envm install <version>",
+			Action:    commands_node.CommandInstall,
+		},
+		{
+			Name:      "uninstall",
+			Usage:     "Uninstall a version",
+			UsageText: "gvm uninstall <version>",
+			Action:    commands_node.CommandUninstall,
 		},
 	}
 )

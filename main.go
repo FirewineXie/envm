@@ -1,8 +1,6 @@
 package main
 
-import (
-	"github.com/FirewineXie/govm/cmd"
-)
+import "github.com/FirewineXie/envm/cmd"
 
 func main() {
 	cmd.Execute()

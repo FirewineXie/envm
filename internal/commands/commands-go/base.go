@@ -2,10 +2,13 @@ package commands_go
 
 import (
 	"fmt"
-	"github.com/FirewineXie/govm/inner/arch"
-	"github.com/FirewineXie/govm/inner/config"
-	"github.com/FirewineXie/govm/inner/web-go"
-	"github.com/mholt/archiver"
+	"github.com/FirewineXie/envm/internal/arch"
+	"github.com/FirewineXie/envm/internal/commands/common"
+	"github.com/FirewineXie/envm/internal/config"
+	"github.com/FirewineXie/envm/internal/logic/web-go"
+	"github.com/FirewineXie/envm/util"
+	"github.com/mholt/archiver/v3"
+
 	"github.com/urfave/cli"
 	"os"
 	"os/exec"
@@ -15,12 +18,12 @@ import (
 	"runtime"
 )
 
-var configLocal = config.Default().Settings[config.GO]
+var configLocal = config.Default().LinkSetting[config.GO]
 
 func CommandUninstall(ctx *cli.Context) error {
 	versionS := ctx.Args().First()
 
-	version := getCurrentVersion()
+	version := common.GetCurrentVersion()
 	if versionS == version {
 		return cli.NewExitError("不能卸载当前版本", 1)
 	}
@@ -39,7 +42,7 @@ func CommandInstall(ctx *cli.Context) error {
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("collect version error1 + %v", err), 1)
 	}
-	var version *web_go.Version
+	var version *web_go.VersionGO
 	versions, err := collector.AllVersions()
 	for _, v := range versions {
 		if v.Name == versionS {
@@ -47,7 +50,7 @@ func CommandInstall(ctx *cli.Context) error {
 			break
 		}
 	}
-	findPackage, err := version.FindPackage(web_go.ArchiveKind, runtime.GOOS, arch.Validate())
+	findPackage, err := version.FindPackage(util.ArchiveKind, runtime.GOOS, arch.Validate())
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("find version of system error + %v", err), 1)
 	}
@@ -78,7 +81,7 @@ func CommandInstall(ctx *cli.Context) error {
 
 // CommandUse 激活使用go版本
 func CommandUse(ctx *cli.Context) error {
-	v, err := getVersion(ctx, true)
+	v, err := common.GetVersion(ctx, configLocal.Downloads, true)
 	if err != nil {
 
 		return err
@@ -130,12 +133,11 @@ func CommandListRemote(ctx *cli.Context) error {
 	return cli.ShowSubcommandHelp(ctx)
 }
 
-
 // CommandListInstalled 展示已经安装的go 版本
 func CommandListInstalled(ctx *cli.Context) {
-	in := getCurrentVersion()
+	in := common.GetCurrentVersion()
 
-	v := getInstalled(configLocal.Downloads)
+	v := common.GetInstalled(configLocal.Downloads)
 
 	for i := 0; i < len(v); i++ {
 		version := v[i]

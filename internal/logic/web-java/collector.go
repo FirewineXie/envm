@@ -2,6 +2,7 @@ package web_java
 
 import (
 	"fmt"
+	"github.com/FirewineXie/envm/util"
 	"net/http"
 	"strings"
 
@@ -75,7 +76,7 @@ func (c *Collector) loadDocument() (err error) {
 
 // LatestSubPackage Compressed Archive
 // 找到第一个就返回
-func (c *Collector) LatestSubPackage(goos, goarch string) (p *Package, err error) {
+func (c *Collector) LatestSubPackage(goos, goarch string) (p *util.Package, err error) {
 	var packageUrl string
 	var sha256 string
 	title := strings.Title(goos)
@@ -106,7 +107,7 @@ func (c *Collector) LatestSubPackage(goos, goarch string) (p *Package, err error
 		})
 
 	})
-	p = &Package{}
+	p = &util.Package{}
 	p.URL = packageUrl
 	p.Algorithm = "sha256"
 	p.Checksum = sha256
@@ -140,7 +141,7 @@ func (c *Collector) LatestSubPackage(goos, goarch string) (p *Package, err error
 //}
 
 // LatestFiveVersion 返回最新的5个大版本
-func (c *Collector) LatestFiveVersion() (items []*Version, err error) {
+func (c *Collector) LatestFiveVersion() (items []*util.Version, err error) {
 	var stopInt int
 	c.doc.Find("ul.icn-ulist").Find("li.icn-chevron-right").Each(func(i int, div *goquery.Selection) {
 		versionDescribe := div.Find("a").Text()
@@ -157,9 +158,13 @@ func (c *Collector) LatestFiveVersion() (items []*Version, err error) {
 		if stopInt != 0 {
 			return
 		}
-		items = append(items, &Version{
+		items = append(items, &util.Version{
 			Name: version,
-			Url:  "https://www.oracle.com/" + val,
+			Packages: []*util.Package{
+				{
+					URL: "https://www.oracle.com/" + val,
+				},
+			},
 		})
 	})
 	return items, nil

@@ -1,4 +1,4 @@
-package web_go
+package util
 
 import (
 	"crypto/sha1"

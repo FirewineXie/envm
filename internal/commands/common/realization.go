@@ -1,8 +1,8 @@
-package commands_go
+package common
 
 import (
 	"errors"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"os/exec"
@@ -12,7 +12,7 @@ import (
 )
 
 // 获取版本
-func getVersion(ctx *cli.Context, localInstallsOnly ...bool) (string, error) {
+func GetVersion(ctx *cli.Context, downloadPath string, localInstallsOnly ...bool) (string, error) {
 	version := ctx.Args().First()
 	if version == "" {
 		return "", cli.ShowSubcommandHelp(ctx)
@@ -20,7 +20,7 @@ func getVersion(ctx *cli.Context, localInstallsOnly ...bool) (string, error) {
 
 	// 如果是true ,那么本地寻找 这个版本
 	if localInstallsOnly[0] {
-		installed := getInstalled(configLocal.Downloads)
+		installed := GetInstalled(downloadPath)
 		for _, installVersion := range installed {
 			if installVersion == version {
 				return version, nil
@@ -31,8 +31,8 @@ func getVersion(ctx *cli.Context, localInstallsOnly ...bool) (string, error) {
 }
 
 // 获取当前版本
-func getCurrentVersion() (version string) {
-	cmd := exec.Command("go", "version")
+func GetCurrentVersion() (version string) {
+	cmd := exec.Command("node", "version")
 	str, err := cmd.Output()
 	if err != nil {
 		return "Unknown"
@@ -47,14 +47,14 @@ func getCurrentVersion() (version string) {
 }
 
 // 获取下载的版本列表
-func getInstalled(root string) []string {
+func GetInstalled(root string) []string {
 	list := make([]semver.Version, 0)
 	files, _ := ioutil.ReadDir(path.Clean(root))
 	for i := len(files) - 1; i >= 0; i-- {
 		if files[i].IsDir() {
-			isGo, _ := regexp.MatchString("go", files[i].Name())
+			isGo, _ := regexp.MatchString("node", files[i].Name())
 			if isGo {
-				currentVersionString := strings.Replace(files[i].Name(), "go", "", 1)
+				currentVersionString := strings.Replace(files[i].Name(), "node", "", 1)
 				if currentVersion, err := semver.Make(currentVersionString); err == nil {
 					list = append(list, currentVersion)
 				}

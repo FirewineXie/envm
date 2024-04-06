@@ -1,4 +1,4 @@
-package web_java
+package util
 
 import (
 	"crypto/sha1"
@@ -13,62 +13,25 @@ import (
 	"strings"
 )
 
-// ErrVersionNotFound 版本不存在
-var ErrVersionNotFound = errors.New("version not found")
+/*
+ * @Author: Firewine
+ * @File: download
+ * @Version: 1.0.0
+ * @Date: 2024-04-06 9:31
+ * @Description:
+ */
 
-// FindVersion 返回指定名称的版本
-func FindVersion(all []*Version, name string) (*Version, error) {
-	for i := range all {
-		if all[i].Name == name {
-			return all[i], nil
-		}
-	}
-	return nil, ErrVersionNotFound
-}
-
-// Version 大版本
-type Version struct {
-	Name     string // 版本名，如'1.12.4'
-	Url      string
-	Packages []*Package
-}
-
-// ErrPackageNotFound 版本包不存在
-var ErrPackageNotFound = errors.New("installation package not found")
-
-// FindPackage 返回指定操作系统和硬件架构的版本包
-func (v *Version) FindPackage(version, goos, goarch string) (*Package, error) {
-	//if goos == "linux" && goarch == "x86_64" {
-	//	goarch = "386"
-	//}
-	if goarch == "amd64" {
-		goarch = "x64"
-	}
-	newCollector, err := NewCollector(v.Url)
-	if err != nil {
-		return nil, err
-	}
-
-	p, err := newCollector.LatestSubPackage(goos, goarch)
-	if err != nil {
-		return nil, err
-	}
-	if p.URL != "" {
-		return p, nil
-	}
-	return nil, ErrPackageNotFound
-}
-
-// Package go版本安装包
+// Package 版本安装包
 type Package struct {
-	FileName  string
-	URL       string
-	Kind      string
-	OS        string
-	Arch      string
-	Size      string
-	Checksum  string
-	Algorithm string // checksum algorithm
+	FileName    string
+	ArchiveName string
+	URL         string
+	Kind        string
+	OS          string
+	Arch        string
+	Size        string
+	Checksum    string
+	Algorithm   string // checksum algorithm
 }
 
 const (
