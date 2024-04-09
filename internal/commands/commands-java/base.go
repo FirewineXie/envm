@@ -18,7 +18,7 @@ var configLocal = config.Default().LinkSetting[config.JAVA]
 func CommandUninstall(ctx *cli.Context) error {
 	versionS := ctx.Args().First()
 
-	version := common.GetCurrentVersion()
+	version := common.GetCurrentVersion("java")
 	if versionS == version {
 		return cli.NewExitError("不能卸载当前版本", 1)
 	}
@@ -32,7 +32,7 @@ func CommandUninstall(ctx *cli.Context) error {
 
 // CommandUse 激活使用
 func CommandUse(ctx *cli.Context) error {
-	v, err := common.GetVersion(ctx, configLocal.Downloads, true)
+	v, err := common.GetVersion(ctx, configLocal.Downloads, "go", true)
 	if err != nil {
 		return err
 	}
@@ -52,9 +52,9 @@ func CommandUse(ctx *cli.Context) error {
 
 // CommandListInstalled 展示已经安装
 func CommandListInstalled(ctx *cli.Context) {
-	in := common.GetCurrentVersion()
+	in := common.GetCurrentVersion("java")
 
-	v := common.GetInstalled(configLocal.Downloads)
+	v := common.GetInstalled(configLocal.Downloads, "jdk")
 
 	for i := 0; i < len(v); i++ {
 		version := v[i]
@@ -66,7 +66,7 @@ func CommandListInstalled(ctx *cli.Context) {
 		} else {
 			str = str + "    "
 		}
-		str = str + regexp.MustCompile("java").ReplaceAllString(version, "")
+		str = str + regexp.MustCompile("jdk").ReplaceAllString(version, "")
 		if in == goVersion {
 			str = str + " (Currently using " + in + " executable)"
 		}

@@ -12,7 +12,7 @@ import (
 )
 
 // 获取版本
-func GetVersion(ctx *cli.Context, downloadPath string, localInstallsOnly ...bool) (string, error) {
+func GetVersion(ctx *cli.Context, downloadPath, language string, localInstallsOnly ...bool) (string, error) {
 	version := ctx.Args().First()
 	if version == "" {
 		return "", cli.ShowSubcommandHelp(ctx)
@@ -20,7 +20,7 @@ func GetVersion(ctx *cli.Context, downloadPath string, localInstallsOnly ...bool
 
 	// 如果是true ,那么本地寻找 这个版本
 	if localInstallsOnly[0] {
-		installed := GetInstalled(downloadPath)
+		installed := GetInstalled(downloadPath, language)
 		for _, installVersion := range installed {
 			if installVersion == version {
 				return version, nil
@@ -31,8 +31,8 @@ func GetVersion(ctx *cli.Context, downloadPath string, localInstallsOnly ...bool
 }
 
 // 获取当前版本
-func GetCurrentVersion() (version string) {
-	cmd := exec.Command("node", "version")
+func GetCurrentVersion(language string) (version string) {
+	cmd := exec.Command(language, "version")
 	str, err := cmd.Output()
 	if err != nil {
 		return "Unknown"
@@ -47,14 +47,14 @@ func GetCurrentVersion() (version string) {
 }
 
 // 获取下载的版本列表
-func GetInstalled(root string) []string {
+func GetInstalled(root string, language string) []string {
 	list := make([]semver.Version, 0)
 	files, _ := ioutil.ReadDir(path.Clean(root))
 	for i := len(files) - 1; i >= 0; i-- {
 		if files[i].IsDir() {
-			isGo, _ := regexp.MatchString("node", files[i].Name())
+			isGo, _ := regexp.MatchString(language, files[i].Name())
 			if isGo {
-				currentVersionString := strings.Replace(files[i].Name(), "node", "", 1)
+				currentVersionString := strings.Replace(files[i].Name(), language, "", 1)
 				if currentVersion, err := semver.Make(currentVersionString); err == nil {
 					list = append(list, currentVersion)
 				}

@@ -23,7 +23,7 @@ var configLocal = config.Default().LinkSetting[config.GO]
 func CommandUninstall(ctx *cli.Context) error {
 	versionS := ctx.Args().First()
 
-	version := common.GetCurrentVersion()
+	version := common.GetCurrentVersion("go")
 	if versionS == version {
 		return cli.NewExitError("不能卸载当前版本", 1)
 	}
@@ -81,7 +81,7 @@ func CommandInstall(ctx *cli.Context) error {
 
 // CommandUse 激活使用go版本
 func CommandUse(ctx *cli.Context) error {
-	v, err := common.GetVersion(ctx, configLocal.Downloads, true)
+	v, err := common.GetVersion(ctx, configLocal.Downloads, "go", true)
 	if err != nil {
 
 		return err
@@ -135,9 +135,9 @@ func CommandListRemote(ctx *cli.Context) error {
 
 // CommandListInstalled 展示已经安装的go 版本
 func CommandListInstalled(ctx *cli.Context) {
-	in := common.GetCurrentVersion()
+	in := common.GetCurrentVersion("go")
 
-	v := common.GetInstalled(configLocal.Downloads)
+	v := common.GetInstalled(configLocal.Downloads, "go")
 
 	for i := 0; i < len(v); i++ {
 		version := v[i]

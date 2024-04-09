@@ -23,7 +23,7 @@ var configLocal = config.Default().LinkSetting[config.NODE]
 func CommandUninstall(ctx *cli.Context) error {
 	versionS := ctx.Args().First()
 
-	version := common.GetCurrentVersion()
+	version := common.GetCurrentVersion(config.NODE)
 	if versionS == version {
 		return cli.NewExitError("不能卸载当前版本", 1)
 	}
@@ -92,7 +92,7 @@ func commandInstall(versionS string) error {
 
 // CommandUse 激活使用
 func CommandUse(ctx *cli.Context) error {
-	v, err := common.GetVersion(ctx, configLocal.Downloads, true)
+	v, err := common.GetVersion(ctx, configLocal.Downloads, "go", true)
 	if err != nil {
 
 		return err
@@ -168,9 +168,9 @@ func CommandListRemote(ctx *cli.Context) error {
 
 // CommandListInstalled 展示已经安装
 func CommandListInstalled(ctx *cli.Context) {
-	in := common.GetCurrentVersion()
+	in := common.GetCurrentVersion(config.NODE)
 
-	v := common.GetInstalled(configLocal.Downloads)
+	v := common.GetInstalled(configLocal.Downloads, "node")
 
 	for i := 0; i < len(v); i++ {
 		version := v[i]
@@ -197,7 +197,7 @@ func CommandListInstalled(ctx *cli.Context) {
 // getInstalled 展示已经安装
 func getInstalled(currentVersion string) bool {
 
-	v := common.GetInstalled(configLocal.Downloads)
+	v := common.GetInstalled(configLocal.Downloads, "node")
 	for i := 0; i < len(v); i++ {
 		version := v[i]
 		if version == currentVersion {
