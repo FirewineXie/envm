@@ -15,7 +15,12 @@ REM 检查是否安装了 NSIS
 where makensis >nul 2>&1
 if errorlevel 1 (
     echo 错误：未检测到 NSIS，请先安装 NSIS
-    echo 下载地址：https://nsis.sourceforge.io/Download
+    echo.
+    echo 安装方法：
+    echo 1. 使用 winget: winget install NSIS.NSIS
+    echo 2. 使用 choco: choco install nsis
+    echo 3. 手动下载: https://nsis.sourceforge.io/Download
+    echo.
     pause
     exit /b 1
 )

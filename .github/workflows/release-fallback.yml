@@ -1,4 +1,4 @@
-name: Release
+name: Release (Fallback - No Windows Installer)
 
 on:
   push:
@@ -63,87 +63,6 @@ jobs:
         name: ${{ env.ASSET_NAME }}
         path: ${{ env.ASSET_NAME }}
 
-  build-windows-installer:
-    runs-on: windows-latest
-    needs: build
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Get version from tag
-      id: version
-      run: echo "VERSION=$($env:GITHUB_REF -replace 'refs/tags/','')" >> $env:GITHUB_OUTPUT
-      shell: powershell
-    
-    - name: Download Windows binary artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip
-        path: ./
-    
-    - name: Extract Windows binary
-      run: |
-        Expand-Archive -Path "envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip" -DestinationPath "./"
-        ls
-      shell: powershell
-    
-    - name: Setup NSIS
-      run: |
-        # 使用稳定的 winget 包管理器安装 NSIS
-        Write-Host "使用 winget 安装 NSIS..."
-        winget install NSIS.NSIS --silent --accept-source-agreements --accept-package-agreements
-        
-        # 等待安装完成
-        Start-Sleep -Seconds 10
-        
-        # 验证安装
-        $nsisPath = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
-        if (Test-Path $nsisPath) {
-          Write-Host "NSIS 安装成功: $nsisPath"
-          & $nsisPath /VERSION
-        } else {
-          # 备选方案：使用 Chocolatey
-          Write-Host "winget 安装失败，尝试 Chocolatey..."
-          choco install nsis -y --no-progress
-          
-          # 再次验证
-          if (Test-Path $nsisPath) {
-            & $nsisPath /VERSION
-          } else {
-            throw "NSIS 安装失败"
-          }
-        }
-      shell: powershell
-    
-    - name: Update NSIS script version
-      run: |
-        $version = "${{ steps.version.outputs.VERSION }}" -replace '^v',''
-        $content = Get-Content "envm-installer.nsi" -Raw
-        $content = $content -replace '!define PRODUCT_VERSION "1.0.0"', "!define PRODUCT_VERSION `"$version`""
-        $content = $content -replace 'OutFile "envm-installer-1.0.0.exe"', "OutFile `"envm-installer-$version.exe`""
-        Set-Content "envm-installer.nsi" -Value $content
-      shell: powershell
-    
-    - name: Build installer
-      run: |
-        # 验证 NSIS 安装
-        makensis /VERSION
-        
-        # 构建安装程序
-        makensis envm-installer.nsi
-        
-        # 验证生成的文件
-        Get-ChildItem *.exe | ForEach-Object { 
-          Write-Host "Generated: $($_.Name) ($($_.Length) bytes)"
-        }
-      shell: powershell
-    
-    - name: Upload installer artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: envm-installer-${{ steps.version.outputs.VERSION }}.exe
-        path: envm-installer-*.exe
-
   generate-release-notes:
     runs-on: ubuntu-latest
     outputs:
@@ -176,27 +95,18 @@ jobs:
         
         ### Windows 用户
         
-        #### 🎯 方式1：EXE安装程序（推荐）
-        1. 下载 `envm-installer-${{ steps.version.outputs.VERSION }}.exe`
-        2. 双击运行安装程序（无需管理员权限）
-        3. 选择安装路径和组件
-        4. 完成安装（自动配置环境变量）
-        
-        **安装程序特性：**
-        - 🎯 自定义安装路径
-        - ⚙️ 可选组件安装
-        - 🛡️ 智能路径验证
-        - 🔄 支持版本升级
-        
-        #### 💾 方式2：便携版
-        1. 下载 `envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip`
-        2. 解压到任意目录
-        3. 手动添加到系统 PATH
-        
-        #### 🚀 方式3：一键安装脚本
+        #### 🚀 方式1：一键安装脚本（推荐）
         ```powershell
         Invoke-Expression (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FirewineXie/envm/main/install.ps1" -UseBasicParsing).Content
         ```
+        
+        #### 💾 方式2：便携版
+        1. 下载 `envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip`
+        2. 解压到任意目录 (建议: `C:\Users\%USERNAME%\envm`)
+        3. 添加到系统 PATH 环境变量
+        4. 手动设置环境变量：
+           - `GOVM_HOME=C:\Users\%USERNAME%\.govm`
+           - `GOVM_SYMLINK=C:\Users\%USERNAME%\.govm\go`
         
         ### Linux/macOS 用户
         
@@ -213,14 +123,15 @@ jobs:
         sudo mv envm-${{ steps.version.outputs.VERSION }}-linux-amd64 /usr/local/bin/envm
         chmod +x /usr/local/bin/envm
         
-        # macOS AMD64
-        wget https://github.com/FirewineXie/envm/releases/download/${{ steps.version.outputs.VERSION }}/envm-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz
-        # ... 类似操作
+        # 设置环境变量 (添加到 ~/.bashrc 或 ~/.zshrc)
+        export GOVM_HOME="$HOME/.govm"
+        export GOVM_SYMLINK="$HOME/.govm/go"
+        export PATH="$GOVM_SYMLINK/bin:$PATH"
         ```
         
         ## ✨ 主要特性
         
-        - 🎯 **多平台支持**: Windows, Linux, macOS
+        - 🎯 **多平台支持**: Windows, Linux, macOS (AMD64/ARM64)
         - 🔧 **智能版本管理**: 自动下载和切换 Go 版本
         - ⚡ **快速切换**: 类似 nvm 的使用体验
         - 🛡️ **安全可靠**: 自动验证下载文件完整性
@@ -287,6 +198,8 @@ jobs:
         # 快速开始
         echo "## 🚀 快速开始" >> release-notes.md
         echo "" >> release-notes.md
+        echo "安装完成后，使用以下命令开始：" >> release-notes.md
+        echo "" >> release-notes.md
         echo "```bash" >> release-notes.md
         echo "# 查看可用版本" >> release-notes.md
         echo "envm list" >> release-notes.md
@@ -296,6 +209,9 @@ jobs:
         echo "" >> release-notes.md
         echo "# 切换到 Go 1.21" >> release-notes.md
         echo "envm use 1.21" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "# 查看当前版本" >> release-notes.md
+        echo "envm current" >> release-notes.md
         echo "```" >> release-notes.md
         echo "" >> release-notes.md
         
@@ -305,8 +221,10 @@ jobs:
         echo "- 📖 **使用文档**: [README.md](https://github.com/FirewineXie/envm#readme)" >> release-notes.md
         echo "- 🐛 **报告问题**: [提交 Issue](https://github.com/FirewineXie/envm/issues/new)" >> release-notes.md
         echo "- ⭐ **支持项目**: [给项目点个星标](https://github.com/FirewineXie/envm)" >> release-notes.md
-        
+        echo "" >> release-notes.md
         echo "---" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "💬 **注意**: 由于技术原因，本版本暂未提供 Windows .exe 安装程序，推荐使用 PowerShell 一键安装脚本。" >> release-notes.md
         echo "🤖 *此发布说明由 GitHub Actions 自动生成*" >> release-notes.md
         
         # 输出到 GitHub Actions
@@ -317,7 +235,7 @@ jobs:
         } >> $GITHUB_OUTPUT
 
   release:
-    needs: [build, build-windows-installer, generate-release-notes]
+    needs: [build, generate-release-notes]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
