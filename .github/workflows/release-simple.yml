@@ -1,4 +1,4 @@
-name: Release
+name: Release (Simplified)
 
 on:
   push:
@@ -64,7 +64,7 @@ jobs:
         path: ${{ env.ASSET_NAME }}
 
   build-windows-installer:
-    runs-on: windows-latest
+    runs-on: windows-2022  # 使用更新的 runner
     needs: build
     
     steps:
@@ -72,7 +72,10 @@ jobs:
     
     - name: Get version from tag
       id: version
-      run: echo "VERSION=$($env:GITHUB_REF -replace 'refs/tags/','')" >> $env:GITHUB_OUTPUT
+      run: |
+        $version = "$env:GITHUB_REF" -replace 'refs/tags/', ''
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        Write-Host "Version: $version"
       shell: powershell
     
     - name: Download Windows binary artifact
@@ -84,85 +87,32 @@ jobs:
     - name: Extract Windows binary
       run: |
         Expand-Archive -Path "envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip" -DestinationPath "./"
-        ls
+        Get-ChildItem -Name "*.exe"
       shell: powershell
     
-    - name: Setup NSIS
-      run: |
-        # 使用 Chocolatey 安装 NSIS（最稳定的方法）
-        Write-Host "使用 Chocolatey 安装 NSIS..."
-        choco install nsis -y --no-progress --force
-        
-        # 验证安装
-        $nsisPath = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
-        if (Test-Path $nsisPath) {
-          Write-Host "NSIS 安装成功: $nsisPath"
-          & $nsisPath /VERSION
-        } else {
-          Write-Host "标准路径未找到，尝试查找 NSIS..."
-          $nsisPaths = @(
-            "${env:ProgramFiles}\NSIS\makensis.exe",
-            "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
-            "${env:ChocolateyInstall}\lib\nsis\tools\makensis.exe",
-            "${env:ChocolateyInstall}\bin\makensis.exe"
-          )
-          
-          $found = $false
-          foreach ($path in $nsisPaths) {
-            if (Test-Path $path) {
-              Write-Host "找到 NSIS: $path"
-              & $path /VERSION
-              $found = $true
-              break
-            }
-          }
-          
-          if (-not $found) {
-            throw "NSIS 安装失败，未在任何预期位置找到"
-          }
-        }
-      shell: powershell
-    
+    - name: Install NSIS using community action
+      uses: joncloud/makensis-action@v4
+      
     - name: Update NSIS script version
       run: |
         $version = "${{ steps.version.outputs.VERSION }}" -replace '^v',''
+        Write-Host "Processing version: $version"
+        
         $content = Get-Content "envm-installer.nsi" -Raw
         $content = $content -replace '!define PRODUCT_VERSION "1.0.0"', "!define PRODUCT_VERSION `"$version`""
         $content = $content -replace 'OutFile "envm-installer-1.0.0.exe"', "OutFile `"envm-installer-$version.exe`""
         Set-Content "envm-installer.nsi" -Value $content
+        
+        Write-Host "NSIS script updated for version: $version"
       shell: powershell
     
-    - name: Build installer
+    - name: Build installer with makensis-action
+      uses: joncloud/makensis-action@v4
+      with:
+        script-file: envm-installer.nsi
+    
+    - name: Verify installer
       run: |
-        # 查找并使用 makensis
-        $nsisPaths = @(
-          "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
-          "${env:ProgramFiles}\NSIS\makensis.exe",
-          "${env:ChocolateyInstall}\lib\nsis\tools\makensis.exe",
-          "${env:ChocolateyInstall}\bin\makensis.exe"
-        )
-        
-        $makensisPath = $null
-        foreach ($path in $nsisPaths) {
-          if (Test-Path $path) {
-            $makensisPath = $path
-            Write-Host "使用 NSIS: $path"
-            break
-          }
-        }
-        
-        if (-not $makensisPath) {
-          throw "未找到 makensis.exe"
-        }
-        
-        # 验证 NSIS 版本
-        & $makensisPath /VERSION
-        
-        # 构建安装程序
-        Write-Host "构建安装程序..."
-        & $makensisPath envm-installer.nsi
-        
-        # 验证生成的文件
         Get-ChildItem *.exe | ForEach-Object { 
           Write-Host "Generated: $($_.Name) ($($_.Length) bytes)"
         }
@@ -212,21 +162,15 @@ jobs:
         3. 选择安装路径和组件
         4. 完成安装（自动配置环境变量）
         
-        **安装程序特性：**
-        - 🎯 自定义安装路径
-        - ⚙️ 可选组件安装
-        - 🛡️ 智能路径验证
-        - 🔄 支持版本升级
-        
-        #### 💾 方式2：便携版
-        1. 下载 `envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip`
-        2. 解压到任意目录
-        3. 手动添加到系统 PATH
-        
-        #### 🚀 方式3：一键安装脚本
+        #### 🚀 方式2：一键安装脚本
         ```powershell
         Invoke-Expression (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FirewineXie/envm/main/install.ps1" -UseBasicParsing).Content
         ```
+        
+        #### 💾 方式3：便携版
+        1. 下载 `envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip`
+        2. 解压到任意目录
+        3. 手动添加到系统 PATH
         
         ### Linux/macOS 用户
         
@@ -243,14 +187,12 @@ jobs:
         sudo mv envm-${{ steps.version.outputs.VERSION }}-linux-amd64 /usr/local/bin/envm
         chmod +x /usr/local/bin/envm
         
-        # macOS AMD64
-        wget https://github.com/FirewineXie/envm/releases/download/${{ steps.version.outputs.VERSION }}/envm-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz
-        # ... 类似操作
+        # macOS AMD64/ARM64 类似操作
         ```
         
         ## ✨ 主要特性
         
-        - 🎯 **多平台支持**: Windows, Linux, macOS
+        - 🎯 **多平台支持**: Windows, Linux, macOS (AMD64/ARM64)
         - 🔧 **智能版本管理**: 自动下载和切换 Go 版本
         - ⚡ **快速切换**: 类似 nvm 的使用体验
         - 🛡️ **安全可靠**: 自动验证下载文件完整性
@@ -317,6 +259,8 @@ jobs:
         # 快速开始
         echo "## 🚀 快速开始" >> release-notes.md
         echo "" >> release-notes.md
+        echo "安装完成后，使用以下命令开始：" >> release-notes.md
+        echo "" >> release-notes.md
         echo "```bash" >> release-notes.md
         echo "# 查看可用版本" >> release-notes.md
         echo "envm list" >> release-notes.md
@@ -326,6 +270,9 @@ jobs:
         echo "" >> release-notes.md
         echo "# 切换到 Go 1.21" >> release-notes.md
         echo "envm use 1.21" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "# 查看当前版本" >> release-notes.md
+        echo "envm current" >> release-notes.md
         echo "```" >> release-notes.md
         echo "" >> release-notes.md
         
