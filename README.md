@@ -15,27 +15,23 @@ curl -fsSL https://raw.githubusercontent.com/FirewineXie/envm/main/install.sh | 
 
 #### Windows
 
-**方式1：使用.exe安装程序（推荐）**
-1. 从 [Releases页面](https://github.com/FirewineXie/envm/releases) 下载最新的 `envm-installer-x.x.x.exe`
-2. 双击运行安装程序（无需管理员权限）
-3. 选择安装路径（默认：`%LOCALAPPDATA%\envm`）
-4. 选择要安装的组件：
-   - 核心程序（必需）
-   - 开始菜单快捷方式
-   - 桌面快捷方式
-5. 完成安装（自动设置环境变量和PATH）
-
-**安装程序特性：**
-- 🎯 **自定义安装路径** - 可选择任意安装位置
-- 🛡️ **路径验证** - 自动检查路径长度和写入权限
-- 🔄 **智能升级** - 检测已安装版本，支持覆盖安装
-- ⚙️ **组件选择** - 可选安装开始菜单和桌面快捷方式
-- 🗑️ **完整卸载** - 通过控制面板完全卸载
-
-**方式2：PowerShell脚本安装**
+**方式1：PowerShell脚本安装（推荐）**
 ```powershell
 Invoke-Expression (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FirewineXie/envm/main/install.ps1" -UseBasicParsing).Content
 ```
+
+**方式2：使用.exe安装程序**
+1. 从 [Releases页面](https://github.com/FirewineXie/envm/releases) 下载最新的 `envm-installer-x.x.x.exe`（如果可用）
+2. 双击运行安装程序（无需管理员权限）
+3. 选择安装路径和组件，完成安装
+
+**方式3：便携版**
+1. 从 [Releases页面](https://github.com/FirewineXie/envm/releases) 下载 `envm-x.x.x-windows-amd64.zip`
+2. 解压到任意目录（建议：`C:\Users\%USERNAME%\envm`）
+3. 手动添加到系统PATH环境变量
+4. 设置环境变量：
+   - `GOVM_HOME=C:\Users\%USERNAME%\.govm`
+   - `GOVM_SYMLINK=C:\Users\%USERNAME%\.govm\go`
 
 ### 手动安装
 
