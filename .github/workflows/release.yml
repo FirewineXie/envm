@@ -123,13 +123,31 @@ jobs:
         }
       shell: powershell
     
-    - name: Update NSIS script version
+    - name: Update NSIS script and prepare binary
       run: |
         $version = "${{ steps.version.outputs.VERSION }}" -replace '^v',''
+        Write-Host "Processing version: $version"
+        
+        # 查找实际的二进制文件
+        $binaryFile = Get-ChildItem -Name "envm-${{ steps.version.outputs.VERSION }}-windows-amd64.exe"
+        if (-not $binaryFile) {
+          Write-Host "未找到二进制文件，列出当前文件："
+          Get-ChildItem
+          throw "未找到预期的二进制文件"
+        }
+        
+        Write-Host "找到二进制文件: $binaryFile"
+        
+        # 更新NSIS脚本
         $content = Get-Content "envm-installer.nsi" -Raw
         $content = $content -replace '!define PRODUCT_VERSION "1.0.0"', "!define PRODUCT_VERSION `"$version`""
         $content = $content -replace 'OutFile "envm-installer-1.0.0.exe"', "OutFile `"envm-installer-$version.exe`""
+        # 更新文件引用，使用实际的文件名
+        $content = $content -replace 'File /oname=envm.exe "envm-\$\{PRODUCT_VERSION\}-windows-amd64.exe"', "File /oname=envm.exe `"$binaryFile`""
         Set-Content "envm-installer.nsi" -Value $content
+        
+        Write-Host "NSIS script updated for version: $version"
+        Write-Host "Binary file reference: $binaryFile"
       shell: powershell
     
     - name: Build installer

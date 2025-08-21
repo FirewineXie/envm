@@ -93,17 +93,60 @@ jobs:
     - name: Install NSIS using community action
       uses: joncloud/makensis-action@v4
       
-    - name: Update NSIS script version
+    - name: Prepare NSIS script from template
       run: |
         $version = "${{ steps.version.outputs.VERSION }}" -replace '^v',''
         Write-Host "Processing version: $version"
         
-        $content = Get-Content "envm-installer.nsi" -Raw
-        $content = $content -replace '!define PRODUCT_VERSION "1.0.0"', "!define PRODUCT_VERSION `"$version`""
-        $content = $content -replace 'OutFile "envm-installer-1.0.0.exe"', "OutFile `"envm-installer-$version.exe`""
-        Set-Content "envm-installer.nsi" -Value $content
+        # 查找实际的二进制文件
+        $binaryFile = Get-ChildItem -Name "envm-${{ steps.version.outputs.VERSION }}-windows-amd64.exe"
+        if (-not $binaryFile) {
+          Write-Host "未找到二进制文件，列出当前文件："
+          Get-ChildItem
+          throw "未找到预期的二进制文件"
+        }
         
-        Write-Host "NSIS script updated for version: $version"
+        Write-Host "找到二进制文件: $binaryFile"
+        
+        # 使用模板创建NSIS脚本
+        if (Test-Path "envm-installer-template.nsi") {
+          Write-Host "使用模板文件创建NSIS脚本"
+          $content = Get-Content "envm-installer-template.nsi" -Raw
+          
+          # 处理版本号格式 (NSIS 需要 x.x.x.x 格式)
+          $viVersion = $version
+          if ($viVersion -notmatch '\.\d+$') {
+            $viVersion = "$version.0"
+          }
+          if (($viVersion.Split('.').Length) -lt 4) {
+            $viVersion = "$viVersion.0"
+          }
+          
+          $content = $content -replace '\{\{VERSION\}\}', $version
+          $content = $content -replace '\{\{VI_VERSION\}\}', $viVersion
+          $content = $content -replace '\{\{BINARY_FILE\}\}', $binaryFile
+          Set-Content "envm-installer.nsi" -Value $content
+          
+          Write-Host "Version: $version, VI Version: $viVersion"
+        } else {
+          Write-Host "模板文件不存在，使用原始文件"
+          $content = Get-Content "envm-installer.nsi" -Raw
+          $content = $content -replace '!define PRODUCT_VERSION "1.0.0"', "!define PRODUCT_VERSION `"$version`""
+          $content = $content -replace 'OutFile "envm-installer-1.0.0.exe"', "OutFile `"envm-installer-$version.exe`""
+          # 更新文件引用，使用实际的文件名
+          $content = $content -replace 'File /oname=envm.exe "envm-\$\{PRODUCT_VERSION\}-windows-amd64.exe"', "File /oname=envm.exe `"$binaryFile`""
+          Set-Content "envm-installer.nsi" -Value $content
+        }
+        
+        Write-Host "NSIS script prepared for version: $version"
+        Write-Host "Binary file reference: $binaryFile"
+        
+        # 验证生成的脚本
+        if (Test-Path "envm-installer.nsi") {
+          Write-Host "NSIS script successfully created"
+        } else {
+          throw "Failed to create NSIS script"
+        }
       shell: powershell
     
     - name: Build installer with makensis-action
