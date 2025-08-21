@@ -1,0 +1,222 @@
+name: Generate Release Notes
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to generate release notes for'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  generate-notes:
+    runs-on: ubuntu-latest
+    outputs:
+      release-notes: ${{ steps.generate.outputs.notes }}
+      previous-tag: ${{ steps.get-tags.outputs.previous }}
+      current-tag: ${{ steps.get-tags.outputs.current }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get tags
+      id: get-tags
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          CURRENT_TAG="${{ github.event.inputs.tag }}"
+        else
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+        fi
+        
+        echo "current=$CURRENT_TAG" >> $GITHUB_OUTPUT
+        
+        # 获取前一个标签
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 $CURRENT_TAG^ 2>/dev/null || echo "")
+        if [ -z "$PREVIOUS_TAG" ]; then
+          PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+        fi
+        
+        echo "previous=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+        echo "当前标签: $CURRENT_TAG"
+        echo "前一个标签: $PREVIOUS_TAG"
+    
+    - name: Generate comprehensive release notes
+      id: generate
+      run: |
+        CURRENT_TAG="${{ steps.get-tags.outputs.current }}"
+        PREVIOUS_TAG="${{ steps.get-tags.outputs.previous }}"
+        
+        # 创建发布说明
+        cat > release-notes.md << 'EOF'
+        # 🎉 envm ${{ steps.get-tags.outputs.current }} 发布
+        
+        感谢所有贡献者对 envm 项目的支持！这个版本包含了许多改进和新功能。
+        
+        ## 📦 安装方法
+        
+        ### Windows 用户
+        
+        #### 🎯 方式1：EXE安装程序（推荐）
+        1. 下载 `envm-installer-${{ steps.get-tags.outputs.current }}.exe`
+        2. 双击运行安装程序
+        3. 选择安装路径和组件
+        4. 完成安装（自动配置环境变量）
+        
+        #### 💾 方式2：便携版
+        1. 下载 `envm-${{ steps.get-tags.outputs.current }}-windows-amd64.zip`
+        2. 解压到任意目录
+        3. 手动添加到系统 PATH
+        
+        #### 🚀 方式3：一键安装脚本
+        ```powershell
+        Invoke-Expression (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FirewineXie/envm/main/install.ps1" -UseBasicParsing).Content
+        ```
+        
+        ### Linux/macOS 用户
+        
+        #### 🚀 一键安装
+        ```bash
+        curl -fsSL https://raw.githubusercontent.com/FirewineXie/envm/main/install.sh | bash
+        ```
+        
+        #### 📦 手动安装
+        1. 下载对应平台的文件：
+           - Linux AMD64: `envm-${{ steps.get-tags.outputs.current }}-linux-amd64.tar.gz`
+           - Linux ARM64: `envm-${{ steps.get-tags.outputs.current }}-linux-arm64.tar.gz`
+           - macOS AMD64: `envm-${{ steps.get-tags.outputs.current }}-darwin-amd64.tar.gz`
+           - macOS ARM64: `envm-${{ steps.get-tags.outputs.current }}-darwin-arm64.tar.gz`
+        2. 解压并安装到 `/usr/local/bin`
+        
+        ## ✨ 主要特性
+        
+        - 🎯 **多平台支持**: Windows, Linux, macOS
+        - 🔧 **智能版本管理**: 自动下载和切换 Go 版本
+        - ⚡ **快速切换**: 类似 nvm 的使用体验
+        - 🛡️ **安全可靠**: 自动验证下载文件完整性
+        - 📁 **灵活配置**: 支持自定义下载源和安装路径
+        
+        EOF
+        
+        # 生成变更日志
+        echo "" >> release-notes.md
+        echo "## 📝 本次更新内容" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 获取新功能
+        echo "### 🚀 新功能 (New Features)" >> release-notes.md
+        git log $PREVIOUS_TAG..$CURRENT_TAG --oneline --grep="feat:" --grep="feature:" --grep="新增" --grep="添加" --grep="✨" | sed 's/^/- /' >> release-notes.md || echo "- 无新功能" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 获取错误修复
+        echo "### 🐛 错误修复 (Bug Fixes)" >> release-notes.md
+        git log $PREVIOUS_TAG..$CURRENT_TAG --oneline --grep="fix:" --grep="修复" --grep="bugfix" --grep="🐛" | sed 's/^/- /' >> release-notes.md || echo "- 无错误修复" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 获取改进优化
+        echo "### ✨ 改进优化 (Improvements)" >> release-notes.md
+        git log $PREVIOUS_TAG..$CURRENT_TAG --oneline --grep="improve:" --grep="refactor:" --grep="优化" --grep="改进" --grep="重构" --grep="♻️" --grep="⚡" | sed 's/^/- /' >> release-notes.md || echo "- 无改进优化" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 获取文档更新
+        echo "### 📚 文档更新 (Documentation)" >> release-notes.md
+        git log $PREVIOUS_TAG..$CURRENT_TAG --oneline --grep="docs:" --grep="doc:" --grep="文档" --grep="readme" --grep="📚" | sed 's/^/- /' >> release-notes.md || echo "- 无文档更新" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 获取所有提交（其他类型）
+        echo "### 🔧 其他变更 (Other Changes)" >> release-notes.md
+        OTHER_COMMITS=$(git log $PREVIOUS_TAG..$CURRENT_TAG --oneline --invert-grep --grep="feat:" --grep="fix:" --grep="docs:" --grep="improve:" --grep="refactor:" --grep="新增" --grep="修复" --grep="文档" --grep="优化" --grep="改进" --grep="✨" --grep="🐛" --grep="📚" --grep="♻️" --grep="⚡" | head -10)
+        if [ ! -z "$OTHER_COMMITS" ]; then
+          echo "$OTHER_COMMITS" | sed 's/^/- /' >> release-notes.md
+        else
+          echo "- 无其他变更" >> release-notes.md
+        fi
+        echo "" >> release-notes.md
+        
+        # 相关 Issues 和 PRs
+        echo "## 🔗 相关问题和拉取请求" >> release-notes.md
+        echo "" >> release-notes.md
+        ISSUES=$(git log $PREVIOUS_TAG..$CURRENT_TAG --oneline | grep -oE "#[0-9]+" | sort -u | head -10)
+        if [ ! -z "$ISSUES" ]; then
+          for issue in $ISSUES; do
+            echo "- $issue" >> release-notes.md
+          done
+        else
+          echo "- 无直接关联的 Issues 或 PRs" >> release-notes.md
+        fi
+        echo "" >> release-notes.md
+        
+        # 贡献者
+        echo "## 👥 贡献者 (Contributors)" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "感谢以下贡献者为本版本做出的贡献：" >> release-notes.md
+        echo "" >> release-notes.md
+        git log $PREVIOUS_TAG..$CURRENT_TAG --format='%an <%ae>' | sort | uniq | while read contributor; do
+          echo "- $contributor" >> release-notes.md
+        done
+        echo "" >> release-notes.md
+        
+        # 版本统计
+        echo "## 📊 版本统计" >> release-notes.md
+        echo "" >> release-notes.md
+        COMMIT_COUNT=$(git rev-list --count $PREVIOUS_TAG..$CURRENT_TAG)
+        FILES_CHANGED=$(git diff --stat $PREVIOUS_TAG..$CURRENT_TAG | tail -1 | grep -oE '[0-9]+ files? changed' | grep -oE '[0-9]+' || echo "0")
+        INSERTIONS=$(git diff --stat $PREVIOUS_TAG..$CURRENT_TAG | tail -1 | grep -oE '[0-9]+ insertions?' | grep -oE '[0-9]+' || echo "0")
+        DELETIONS=$(git diff --stat $PREVIOUS_TAG..$CURRENT_TAG | tail -1 | grep -oE '[0-9]+ deletions?' | grep -oE '[0-9]+' || echo "0")
+        
+        echo "- 📝 **提交数量**: $COMMIT_COUNT" >> release-notes.md
+        echo "- 📁 **文件变更**: $FILES_CHANGED 个文件" >> release-notes.md
+        echo "- ➕ **新增代码**: $INSERTIONS 行" >> release-notes.md
+        echo "- ➖ **删除代码**: $DELETIONS 行" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 使用说明
+        echo "## 🚀 快速开始" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "安装完成后，使用以下命令开始：" >> release-notes.md
+        echo "" >> release-notes.md
+        echo '```bash' >> release-notes.md
+        echo '# 查看可用的 Go 版本' >> release-notes.md
+        echo 'envm list' >> release-notes.md
+        echo '' >> release-notes.md
+        echo '# 安装 Go 1.21' >> release-notes.md
+        echo 'envm install 1.21' >> release-notes.md
+        echo '' >> release-notes.md
+        echo '# 切换到 Go 1.21' >> release-notes.md
+        echo 'envm use 1.21' >> release-notes.md
+        echo '' >> release-notes.md
+        echo '# 查看当前版本' >> release-notes.md
+        echo 'envm current' >> release-notes.md
+        echo '```' >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 支持信息
+        echo "## 💡 获取帮助" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "- 📖 **项目文档**: [README.md](https://github.com/FirewineXie/envm/blob/main/README.md)" >> release-notes.md
+        echo "- 🐛 **报告问题**: [Issues](https://github.com/FirewineXie/envm/issues)" >> release-notes.md
+        echo "- 💬 **参与讨论**: [Discussions](https://github.com/FirewineXie/envm/discussions)" >> release-notes.md
+        echo "- ⭐ **支持项目**: 给项目点个星标吧！" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        echo "---" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "🤖 *此发布说明由 GitHub Actions 自动生成于 $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> release-notes.md
+        
+        # 保存到输出
+        {
+          echo 'notes<<EOF'
+          cat release-notes.md
+          echo EOF
+        } >> $GITHUB_OUTPUT
+    
+    - name: Upload release notes as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-notes-${{ steps.get-tags.outputs.current }}
+        path: release-notes.md

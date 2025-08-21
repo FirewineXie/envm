@@ -1,0 +1,131 @@
+name: 🐛 错误报告
+description: 报告一个错误来帮助我们改进 envm
+title: "[Bug] "
+labels: ["bug", "需要分类"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您花时间填写错误报告！您的反馈对我们非常重要。
+
+  - type: input
+    id: version
+    attributes:
+      label: envm 版本
+      description: 您使用的 envm 版本是什么？
+      placeholder: 例如：v1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      description: 您在哪个操作系统上遇到了问题？
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Ubuntu/Debian
+        - CentOS/RHEL
+        - Arch Linux
+        - 其他 Linux 发行版
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: 操作系统版本
+      description: 具体的操作系统版本
+      placeholder: 例如：Windows 11 22H2, macOS 13.0, Ubuntu 22.04
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清楚简洁地描述您遇到的问题
+      placeholder: 描述发生了什么...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 重现步骤
+      description: 描述如何重现这个问题的步骤
+      value: |
+        1. 运行命令 '...'
+        2. 执行操作 '....'
+        3. 查看错误 '....'
+        4. 看到错误
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+      description: 描述您期望发生什么
+      placeholder: 我期望...
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 描述实际发生了什么
+      placeholder: 实际上...
+
+  - type: textarea
+    id: output
+    attributes:
+      label: 命令输出
+      description: 如果适用，请提供相关的命令输出或错误信息
+      render: shell
+      placeholder: |
+        $ envm install 1.21
+        错误信息...
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: |
+        运行 `envm --version` 和其他相关环境信息
+      render: shell
+      placeholder: |
+        $ envm --version
+        envm version v1.0.0
+
+        $ go version
+        go version go1.21.0
+
+        环境变量:
+        GOVM_HOME=...
+        GOVM_SYMLINK=...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 附加信息
+      description: 添加任何其他关于问题的上下文、截图或相关信息
+      placeholder: 任何其他有用的信息...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 检查清单
+      description: 在提交之前，请确保您已经完成以下检查
+      options:
+        - label: 我已经搜索了现有的 issues，确认这不是重复问题
+          required: true
+        - label: 我使用的是最新版本的 envm
+          required: false
+        - label: 我已经阅读了项目文档
+          required: false
+        - label: 我愿意提交 PR 来修复这个问题
+          required: false

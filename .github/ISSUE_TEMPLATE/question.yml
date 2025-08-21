@@ -1,0 +1,65 @@
+name: ❓ 问题咨询
+description: 询问关于 envm 使用的问题
+title: "[Question] "
+labels: ["question"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您的提问！我们很乐意帮助您解决 envm 的使用问题。
+
+  - type: input
+    id: version
+    attributes:
+      label: envm 版本
+      description: 您使用的 envm 版本是什么？
+      placeholder: 例如：v1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 您的问题
+      description: 详细描述您的问题
+      placeholder: 我想知道如何...
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: 已尝试的方法
+      description: 您已经尝试过什么方法来解决这个问题？
+      placeholder: 我尝试了...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 相关背景
+      description: 提供任何可能有用的背景信息
+      placeholder: 我正在尝试...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 检查清单
+      options:
+        - label: 我已经阅读了 README 文档
+          required: true
+        - label: 我已经搜索了现有的 issues
+          required: true

@@ -1,0 +1,314 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          # Windows ARM64 support is limited
+          - goos: windows
+            goarch: arm64
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+    
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        # Set binary extension for Windows
+        if [ "$GOOS" = "windows" ]; then
+          BINARY_NAME="envm-${{ steps.version.outputs.VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}.exe"
+        else
+          BINARY_NAME="envm-${{ steps.version.outputs.VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+        fi
+        
+        # Build the binary
+        go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" -o "$BINARY_NAME" .
+        
+        # Create archive
+        if [ "$GOOS" = "windows" ]; then
+          zip "${BINARY_NAME%.exe}.zip" "$BINARY_NAME"
+          echo "ASSET_NAME=${BINARY_NAME%.exe}.zip" >> $GITHUB_ENV
+        else
+          tar -czf "${BINARY_NAME}.tar.gz" "$BINARY_NAME"
+          echo "ASSET_NAME=${BINARY_NAME}.tar.gz" >> $GITHUB_ENV
+        fi
+    
+    - name: Upload Release Asset
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ASSET_NAME }}
+        path: ${{ env.ASSET_NAME }}
+
+  build-windows-installer:
+    runs-on: windows-latest
+    needs: build
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=$($env:GITHUB_REF -replace 'refs/tags/','')" >> $env:GITHUB_OUTPUT
+      shell: powershell
+    
+    - name: Download Windows binary artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip
+        path: ./
+    
+    - name: Extract Windows binary
+      run: |
+        Expand-Archive -Path "envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip" -DestinationPath "./"
+        ls
+      shell: powershell
+    
+    - name: Install NSIS
+      run: |
+        Invoke-WebRequest -Uri "https://sourceforge.net/projects/nsis/files/NSIS%203/3.09/nsis-3.09-setup.exe" -OutFile "nsis-setup.exe"
+        Start-Process -FilePath "nsis-setup.exe" -ArgumentList "/S" -Wait
+        echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
+      shell: powershell
+    
+    - name: Update NSIS script version
+      run: |
+        $version = "${{ steps.version.outputs.VERSION }}" -replace '^v',''
+        $content = Get-Content "envm-installer.nsi" -Raw
+        $content = $content -replace '!define PRODUCT_VERSION "1.0.0"', "!define PRODUCT_VERSION `"$version`""
+        $content = $content -replace 'OutFile "envm-installer-1.0.0.exe"', "OutFile `"envm-installer-$version.exe`""
+        Set-Content "envm-installer.nsi" -Value $content
+      shell: powershell
+    
+    - name: Build installer
+      run: makensis envm-installer.nsi
+      shell: cmd
+    
+    - name: Upload installer artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: envm-installer-${{ steps.version.outputs.VERSION }}.exe
+        path: envm-installer-*.exe
+
+  generate-release-notes:
+    runs-on: ubuntu-latest
+    outputs:
+      release-notes: ${{ steps.notes.outputs.notes }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Generate release notes
+      id: notes
+      run: |
+        CURRENT_TAG="${{ steps.version.outputs.VERSION }}"
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 $CURRENT_TAG^ 2>/dev/null || echo "")
+        if [ -z "$PREVIOUS_TAG" ]; then
+          PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+        fi
+        
+        # 创建发布说明
+        cat > release-notes.md << 'EOF'
+        # 🎉 envm ${{ steps.version.outputs.VERSION }} 发布
+        
+        感谢所有贡献者对 envm 项目的支持！这个版本包含了许多改进和新功能。
+        
+        ## 📦 安装方法
+        
+        ### Windows 用户
+        
+        #### 🎯 方式1：EXE安装程序（推荐）
+        1. 下载 `envm-installer-${{ steps.version.outputs.VERSION }}.exe`
+        2. 双击运行安装程序（无需管理员权限）
+        3. 选择安装路径和组件
+        4. 完成安装（自动配置环境变量）
+        
+        **安装程序特性：**
+        - 🎯 自定义安装路径
+        - ⚙️ 可选组件安装
+        - 🛡️ 智能路径验证
+        - 🔄 支持版本升级
+        
+        #### 💾 方式2：便携版
+        1. 下载 `envm-${{ steps.version.outputs.VERSION }}-windows-amd64.zip`
+        2. 解压到任意目录
+        3. 手动添加到系统 PATH
+        
+        #### 🚀 方式3：一键安装脚本
+        ```powershell
+        Invoke-Expression (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/FirewineXie/envm/main/install.ps1" -UseBasicParsing).Content
+        ```
+        
+        ### Linux/macOS 用户
+        
+        #### 🚀 一键安装
+        ```bash
+        curl -fsSL https://raw.githubusercontent.com/FirewineXie/envm/main/install.sh | bash
+        ```
+        
+        #### 📦 手动安装
+        ```bash
+        # Linux AMD64
+        wget https://github.com/FirewineXie/envm/releases/download/${{ steps.version.outputs.VERSION }}/envm-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz
+        tar -xzf envm-${{ steps.version.outputs.VERSION }}-linux-amd64.tar.gz
+        sudo mv envm-${{ steps.version.outputs.VERSION }}-linux-amd64 /usr/local/bin/envm
+        chmod +x /usr/local/bin/envm
+        
+        # macOS AMD64
+        wget https://github.com/FirewineXie/envm/releases/download/${{ steps.version.outputs.VERSION }}/envm-${{ steps.version.outputs.VERSION }}-darwin-amd64.tar.gz
+        # ... 类似操作
+        ```
+        
+        ## ✨ 主要特性
+        
+        - 🎯 **多平台支持**: Windows, Linux, macOS
+        - 🔧 **智能版本管理**: 自动下载和切换 Go 版本
+        - ⚡ **快速切换**: 类似 nvm 的使用体验
+        - 🛡️ **安全可靠**: 自动验证下载文件完整性
+        - 📁 **灵活配置**: 支持自定义下载源和安装路径
+        
+        EOF
+        
+        # 生成变更日志
+        echo "" >> release-notes.md
+        echo "## 📝 本次更新内容" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 获取新功能
+        echo "### 🚀 新功能" >> release-notes.md
+        NEW_FEATURES=$(git log $PREVIOUS_TAG..$CURRENT_TAG --oneline --grep="feat:" --grep="feature:" --grep="新增" --grep="添加" --grep="✨")
+        if [ ! -z "$NEW_FEATURES" ]; then
+          echo "$NEW_FEATURES" | sed 's/^/- /' >> release-notes.md
+        else
+          echo "- 无新功能添加" >> release-notes.md
+        fi
+        echo "" >> release-notes.md
+        
+        # 获取错误修复
+        echo "### 🐛 错误修复" >> release-notes.md
+        BUG_FIXES=$(git log $PREVIOUS_TAG..$CURRENT_TAG --oneline --grep="fix:" --grep="修复" --grep="bugfix" --grep="🐛")
+        if [ ! -z "$BUG_FIXES" ]; then
+          echo "$BUG_FIXES" | sed 's/^/- /' >> release-notes.md
+        else
+          echo "- 无错误修复" >> release-notes.md
+        fi
+        echo "" >> release-notes.md
+        
+        # 获取改进优化
+        echo "### ✨ 改进优化" >> release-notes.md
+        IMPROVEMENTS=$(git log $PREVIOUS_TAG..$CURRENT_TAG --oneline --grep="improve:" --grep="refactor:" --grep="优化" --grep="改进" --grep="重构" --grep="♻️" --grep="⚡")
+        if [ ! -z "$IMPROVEMENTS" ]; then
+          echo "$IMPROVEMENTS" | sed 's/^/- /' >> release-notes.md
+        else
+          echo "- 无改进优化" >> release-notes.md
+        fi
+        echo "" >> release-notes.md
+        
+        # 相关 Issues 和 PRs
+        echo "## 🔗 相关问题和拉取请求" >> release-notes.md
+        echo "" >> release-notes.md
+        ISSUES=$(git log $PREVIOUS_TAG..$CURRENT_TAG --oneline | grep -oE "#[0-9]+" | sort -u | head -10)
+        if [ ! -z "$ISSUES" ]; then
+          for issue in $ISSUES; do
+            echo "- 关联问题/PR: $issue" >> release-notes.md
+          done
+        else
+          echo "- 无直接关联的 Issues 或 PRs" >> release-notes.md
+        fi
+        echo "" >> release-notes.md
+        
+        # 版本统计
+        echo "## 📊 版本统计" >> release-notes.md
+        echo "" >> release-notes.md
+        COMMIT_COUNT=$(git rev-list --count $PREVIOUS_TAG..$CURRENT_TAG)
+        echo "- 📝 **提交数量**: $COMMIT_COUNT" >> release-notes.md
+        echo "- 📅 **发布时间**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 快速开始
+        echo "## 🚀 快速开始" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "```bash" >> release-notes.md
+        echo "# 查看可用版本" >> release-notes.md
+        echo "envm list" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "# 安装 Go 1.21" >> release-notes.md
+        echo "envm install 1.21" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "# 切换到 Go 1.21" >> release-notes.md
+        echo "envm use 1.21" >> release-notes.md
+        echo "```" >> release-notes.md
+        echo "" >> release-notes.md
+        
+        # 获取帮助
+        echo "## 💡 获取帮助" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "- 📖 **使用文档**: [README.md](https://github.com/FirewineXie/envm#readme)" >> release-notes.md
+        echo "- 🐛 **报告问题**: [提交 Issue](https://github.com/FirewineXie/envm/issues/new)" >> release-notes.md
+        echo "- ⭐ **支持项目**: [给项目点个星标](https://github.com/FirewineXie/envm)" >> release-notes.md
+        
+        echo "---" >> release-notes.md
+        echo "🤖 *此发布说明由 GitHub Actions 自动生成*" >> release-notes.md
+        
+        # 输出到 GitHub Actions
+        {
+          echo 'notes<<EOF'
+          cat release-notes.md
+          echo EOF
+        } >> $GITHUB_OUTPUT
+
+  release:
+    needs: [build, build-windows-installer, generate-release-notes]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: "🚀 envm ${{ steps.version.outputs.VERSION }} 正式发布"
+        body: ${{ needs.generate-release-notes.outputs.release-notes }}
+        files: ./artifacts/**/*
+        draft: false
+        prerelease: false
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

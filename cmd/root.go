@@ -16,7 +16,7 @@ func Execute() {
 	app.Usage = "Any More Version Manager"
 	app.Version = "v1.0.2"
 	app.Description = `
-			java & go  & node  version manager
+			java & go version manager
      `
 
 	app.Authors = []cli.Author{

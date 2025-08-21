@@ -28,7 +28,6 @@ type SubConfig struct {
 var root = filepath.Clean(os.Getenv("ENVM_HOME"))
 var goSymlink = filepath.Clean(os.Getenv("ENVM_GO_SYMLINK"))
 var javaSymlink = filepath.Clean(os.Getenv("ENVM_JAVA_SYMLINK"))
-var nodeSymlink = filepath.Clean(os.Getenv("ENVM_NODE_SYMLINK"))
 
 var env = EnvmConfig{
 	Root:        root,
@@ -65,22 +64,11 @@ func init() {
 			_ = os.Mkdir(env.LinkSetting[JAVA].Downloads, os.ModePerm)
 		}
 	}
-	if javaSymlink != "." {
-		env.LinkSetting[NODE] = SubConfig{
-			nodeSymlink,
-			filepath.Join(env.Downloads, "node"),
-		}
-		pathExists, _ := util.PathExists(env.LinkSetting[NODE].Downloads)
-		if !pathExists {
-			_ = os.Mkdir(env.LinkSetting[NODE].Downloads, os.ModePerm)
-		}
-	}
 }
 
 const (
 	GO   = "go"
 	JAVA = "java"
-	NODE = "node"
 )
 
 func Default() EnvmConfig {
@@ -112,14 +100,6 @@ func VerifyEnvJava() error {
 
 	if symlink == "" {
 		return errors.New("请先配置 ENVM_JAVA_SYMLINK")
-	}
-	return nil
-}
-func VerifyEnvNode() error {
-	symlink := env.LinkSetting[NODE].Symlink
-
-	if symlink == "" {
-		return errors.New("请先配置 ENVM_NODE_SYMLINK")
 	}
 	return nil
 }
