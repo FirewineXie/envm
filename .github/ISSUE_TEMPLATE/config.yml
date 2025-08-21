@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 项目文档
+    url: https://github.com/FirewineXie/envm#readme
+    about: 查看项目的 README 和使用文档
+  - name: 💬 讨论区
+    url: https://github.com/FirewineXie/envm/discussions
+    about: 在讨论区与其他用户交流使用心得和想法
+  - name: 🔍 搜索已知问题
+    url: https://github.com/FirewineXie/envm/issues?q=is%3Aissue
+    about: 搜索已有的问题，可能您的问题已经被报告过了

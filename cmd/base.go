@@ -4,7 +4,6 @@ import (
 	"github.com/FirewineXie/envm/internal/arch"
 	"github.com/FirewineXie/envm/internal/commands/commands-go"
 	"github.com/FirewineXie/envm/internal/commands/commands-java"
-	"github.com/FirewineXie/envm/internal/commands/commands-node"
 	"github.com/FirewineXie/envm/internal/config"
 	"github.com/urfave/cli"
 )
@@ -37,15 +36,6 @@ var (
 				return config.VerifyEnvJava()
 			},
 			Subcommands: javaCommands,
-		},
-		{
-			Name:      "node",
-			Usage:     "envm node",
-			UsageText: "envm node",
-			Before: func(context *cli.Context) error {
-				return config.VerifyEnvNode()
-			},
-			Subcommands: nodeCommands,
 		},
 	}
 
@@ -100,38 +90,6 @@ var (
 			Usage:     "Uninstall a version",
 			UsageText: "envm java uninstall <version>",
 			Action:    commands_java.CommandUninstall,
-		},
-	}
-	nodeCommands = []cli.Command{
-		{
-			Name:      "ls",
-			Usage:     "envm node ls",
-			UsageText: "List installed versions",
-			Action:    commands_node.CommandListInstalled,
-		},
-		{
-			Name:      "lsr",
-			Usage:     "List remote versions available for install",
-			UsageText: "envm lsr [all|lts|current|stable|unstable]",
-			Action:    commands_node.CommandListRemote,
-		},
-		{
-			Name:      "active",
-			Usage:     "Switch to specified version",
-			UsageText: "envm active <version>",
-			Action:    commands_node.CommandUse,
-		},
-		{
-			Name:      "install",
-			Usage:     "Download and install a <version>",
-			UsageText: "envm install <version>",
-			Action:    commands_node.CommandInstall,
-		},
-		{
-			Name:      "uninstall",
-			Usage:     "Uninstall a version",
-			UsageText: "gvm uninstall <version>",
-			Action:    commands_node.CommandUninstall,
 		},
 	}
 )
