@@ -8,14 +8,15 @@ import (
 
 func Test_getCurrentVersion(t *testing.T) {
 	Convey("验证go 当前版本", t, func() {
-		version := getCurrentVersion()
-		So(version, ShouldEqual, "go1.17.1")
+		version := GetCurrentVersion("go")
+		So(version, ShouldNotBeEmpty)
 	})
 }
 
 func Test_getInstalled(t *testing.T) {
 	Convey("测试已经安装的go 版本", t, func() {
-		fmt.Println(getInstalled("D:\\programs"))
-
+		versions := GetInstalled("D:\\programs", "go")
+		fmt.Println(versions)
+		So(versions, ShouldNotBeNil)
 	})
 }

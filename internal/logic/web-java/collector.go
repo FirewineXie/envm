@@ -117,28 +117,92 @@ func (c *Collector) LatestSubPackage(goos, goarch string) (p *util.Package, err 
 
 }
 
-//func (c *Collector) findPackages(table *goquery.Selection) (pkgs []*Package) {
-//	table.Find("tr").Find("td").Each(func(i int, selection *goquery.Selection) {
-//		nodes := selection.Find("a").Nodes
-//		if len(nodes) > 1 {
-//			packgeUrl := nodes[0].Attr[0].Val
-//			sha256 := nodes[1].Attr[0].Val
-//			pkgs = append(pkgs, &Package{
-//				FileName:  td.Eq(0).Find("a").Text(),
-//				URL:       nodes[0].Attr[0].Val,
-//				Kind:      td.Eq(1).Text(),
-//				OS:        td.Eq(2).Text(),
-//				Arch:      td.Eq(3).Text(),
-//				Size:      td.Eq(4).Text(),
-//				Checksum:  td.Eq(5).Text(),
-//				Algorithm: "sha256",
-//			})
-//
-//		}
-//
-//	})
-//	return pkgs
-//}
+func (c *Collector) findPackages(table *goquery.Selection) (pkgs []*util.Package) {
+	table.Find("tr").Each(func(i int, tr *goquery.Selection) {
+		td := tr.Find("td")
+		if td.Length() >= 6 {
+			pkgs = append(pkgs, &util.Package{
+				FileName:  td.Eq(0).Find("a").Text(),
+				URL:       td.Eq(0).Find("a").AttrOr("href", ""),
+				Kind:      td.Eq(1).Text(),
+				OS:        td.Eq(2).Text(),
+				Arch:      td.Eq(3).Text(),
+				Size:      td.Eq(4).Text(),
+				Checksum:  td.Eq(5).Text(),
+				Algorithm: "SHA256",
+			})
+		}
+	})
+	return pkgs
+}
+
+// StableVersions 返回稳定版本列表
+func (c *Collector) StableVersions() ([]*util.Version, error) {
+	if c.doc == nil {
+		if err := c.loadDocument(); err != nil {
+			return nil, err
+		}
+	}
+	
+	var versions []*util.Version
+	c.doc.Find("#stable").Next().Find("div.toggle").Each(func(i int, div *goquery.Selection) {
+		versionText := div.Find("div.toggleVisible").Text()
+		if versionText != "" {
+			// 提取版本号
+			versionName := strings.TrimSpace(strings.Split(versionText, " ")[0])
+			table := div.Find("table").First()
+			packages := c.findPackages(table)
+			versions = append(versions, &util.Version{
+				Name:     versionName,
+				Packages: packages,
+			})
+		}
+	})
+	return versions, nil
+}
+
+// ArchivedVersions 返回归档版本列表
+func (c *Collector) ArchivedVersions() ([]*util.Version, error) {
+	if c.doc == nil {
+		if err := c.loadDocument(); err != nil {
+			return nil, err
+		}
+	}
+	
+	var versions []*util.Version
+	c.doc.Find("#archive").Next().Find("div.toggle").Each(func(i int, div *goquery.Selection) {
+		versionText := div.Find("div.toggleVisible").Text()
+		if versionText != "" {
+			versionName := strings.TrimSpace(strings.Split(versionText, " ")[0])
+			table := div.Find("table").First()
+			packages := c.findPackages(table)
+			versions = append(versions, &util.Version{
+				Name:     versionName,
+				Packages: packages,
+			})
+		}
+	})
+	return versions, nil
+}
+
+// AllVersions 返回所有版本列表
+func (c *Collector) AllVersions() ([]*util.Version, error) {
+	stable, err := c.StableVersions()
+	if err != nil {
+		return nil, err
+	}
+	
+	archived, err := c.ArchivedVersions()
+	if err != nil {
+		return nil, err
+	}
+	
+	all := make([]*util.Version, 0, len(stable)+len(archived))
+	all = append(all, stable...)
+	all = append(all, archived...)
+	
+	return all, nil
+}
 
 // LatestFiveVersion 返回最新的5个大版本
 func (c *Collector) LatestFiveVersion() (items []*util.Version, err error) {

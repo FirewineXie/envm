@@ -51,7 +51,7 @@ func CommandUse(ctx *cli.Context) error {
 }
 
 // CommandListInstalled 展示已经安装
-func CommandListInstalled(ctx *cli.Context) {
+func CommandListInstalled(ctx *cli.Context) error {
 	in := common.GetCurrentVersion("java")
 
 	v := common.GetInstalled(configLocal.Downloads, "jdk")
@@ -70,12 +70,13 @@ func CommandListInstalled(ctx *cli.Context) {
 		if in == goVersion {
 			str = str + " (Currently using " + in + " executable)"
 		}
-		fmt.Printf(str + "\n")
+		fmt.Print(str + "\n")
 
 	}
 	if len(v) == 0 {
 		fmt.Println("No installations recognized.")
 	}
+	return nil
 }
 
 func CommandListRemote(ctx *cli.Context) error {

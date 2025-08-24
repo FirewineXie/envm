@@ -37,3 +37,42 @@ var ErrPackageNotFound = errors.New("installation package not found")
 type FindPackageInterface interface {
 	FindPackage(king, goos, arch string) (*Package, error)
 }
+
+// FindPackage 查找指定类型、操作系统和架构的包
+func (v *Version) FindPackage(kind, goos, arch string) (*Package, error) {
+	for i := range v.Packages {
+		pkg := v.Packages[i]
+		if pkg.Kind == kind {
+			// 匹配操作系统
+			osMatch := false
+			switch goos {
+			case "darwin":
+				osMatch = pkg.OS == "macOS" || pkg.OS == "Darwin"
+			case "windows":
+				osMatch = pkg.OS == "Windows"
+			case "linux":
+				osMatch = pkg.OS == "Linux"
+			default:
+				osMatch = pkg.OS == goos
+			}
+			
+			// 匹配架构
+			archMatch := false
+			switch arch {
+			case "amd64":
+				archMatch = pkg.Arch == "x86-64" || pkg.Arch == "amd64"
+			case "386":
+				archMatch = pkg.Arch == "x86" || pkg.Arch == "386"
+			case "arm64":
+				archMatch = pkg.Arch == "ARM64" || pkg.Arch == "arm64"
+			default:
+				archMatch = pkg.Arch == arch
+			}
+			
+			if osMatch && archMatch {
+				return pkg, nil
+			}
+		}
+	}
+	return nil, ErrPackageNotFound
+}

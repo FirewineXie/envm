@@ -1,0 +1,48 @@
+# Test configuration for envm project
+
+test:
+  # Environment variables for testing
+  env:
+    # Test directories (will be created and cleaned up)
+    ENVM_HOME_TEST: "/tmp/envm-test"
+    ENVM_GO_SYMLINK_TEST: "/tmp/envm-test/go"
+    ENVM_JAVA_SYMLINK_TEST: "/tmp/envm-test/java"
+
+  # Test execution settings
+  execution:
+    # Skip long-running tests by default
+    skip_network_tests: true
+    # Skip download tests by default  
+    skip_download_tests: true
+    # Timeout for individual tests
+    test_timeout: "30s"
+    # Number of parallel test processes
+    parallel: 4
+
+  # Coverage settings
+  coverage:
+    # Minimum coverage threshold
+    threshold: 70
+    # Generate HTML report
+    html_report: true
+    # Coverage profile output
+    profile: "coverage.out"
+
+  # Packages to test
+  packages:
+    - "./cmd/..."
+    - "./internal/..."
+    - "./util/..."
+
+  # Test tags
+  tags:
+    unit: "unit"
+    integration: "integration"
+    network: "network"
+
+# Mock settings for testing
+mocks:
+  # Mock external dependencies
+  network_requests: true
+  file_system: false  # Use real filesystem for most tests
+  external_commands: false  # Use real commands where possible
