@@ -134,7 +134,7 @@ func CommandListRemote(ctx *cli.Context) error {
 }
 
 // CommandListInstalled 展示已经安装的go 版本
-func CommandListInstalled(ctx *cli.Context) {
+func CommandListInstalled(ctx *cli.Context) error {
 	in := common.GetCurrentVersion("go")
 
 	v := common.GetInstalled(configLocal.Downloads, "go")
@@ -153,10 +153,11 @@ func CommandListInstalled(ctx *cli.Context) {
 		if in == goVersion {
 			str = str + " (Currently using " + in + " executable)"
 		}
-		fmt.Printf(str + "\n")
+		fmt.Print(str + "\n")
 
 	}
 	if len(v) == 0 {
 		fmt.Println("No installations recognized.")
 	}
+	return nil
 }

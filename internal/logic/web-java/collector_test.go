@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/FirewineXie/envm/util"
 	"github.com/PuerkitoBio/goquery"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -37,7 +38,7 @@ func Test_findPackages(t *testing.T) {
 		//So(len(pkgs), ShouldEqual, 15)
 		So(pkgs[1].Algorithm, ShouldEqual, "SHA256")
 		So(pkgs[1].FileName, ShouldEqual, "go1.12.4.darwin-amd64.tar.gz")
-		So(pkgs[1].Kind, ShouldEqual, ArchiveKind)
+		So(pkgs[1].Kind, ShouldEqual, util.ArchiveKind)
 		So(pkgs[1].OS, ShouldEqual, "macOS")
 		So(pkgs[1].Arch, ShouldEqual, "x86-64")
 		So(pkgs[1].Size, ShouldEqual, "122MB")

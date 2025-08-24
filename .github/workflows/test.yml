@@ -1,0 +1,119 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go: ['1.19', '1.20', '1.21']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.go }}-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Run tests (Unix)
+      if: matrix.os != 'windows-latest'
+      env:
+        ENVM_HOME: "$HOME/.envm"
+        ENVM_GO_SYMLINK: "$HOME/.envm/go"  
+        ENVM_JAVA_SYMLINK: "$HOME/.envm/java"
+      run: |
+        mkdir -p "$ENVM_HOME/downloads/go"
+        mkdir -p "$ENVM_HOME/downloads/java"
+        go test -v -race -coverprofile=coverage.out ./...
+
+    - name: Run tests (Windows)
+      if: matrix.os == 'windows-latest'
+      env:
+        ENVM_HOME: "C:\\Users\\$env:USERNAME\\.envm"
+        ENVM_GO_SYMLINK: "C:\\Users\\$env:USERNAME\\.envm\\go"
+        ENVM_JAVA_SYMLINK: "C:\\Users\\$env:USERNAME\\.envm\\java"
+      run: |
+        New-Item -ItemType Directory -Path "$env:ENVM_HOME\\downloads\\go" -Force | Out-Null
+        New-Item -ItemType Directory -Path "$env:ENVM_HOME\\downloads\\java" -Force | Out-Null
+        go test -v -race -coverprofile=coverage.out ./...
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+        args: --timeout=5m
+
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Build binary (Unix)
+      if: matrix.os != 'windows-latest'
+      run: go build -o bin/envm .
+
+    - name: Build binary (Windows)  
+      if: matrix.os == 'windows-latest'
+      run: go build -o bin/envm.exe .
+
+    - name: Test binary (Unix)
+      if: matrix.os != 'windows-latest'
+      run: ./bin/envm --version || ./bin/envm --help
+
+    - name: Test binary (Windows)
+      if: matrix.os == 'windows-latest'
+      run: .\bin\envm.exe --version || .\bin\envm.exe --help
