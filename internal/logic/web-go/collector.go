@@ -168,6 +168,8 @@ type VersionGO struct {
 
 // FindPackage 返回指定操作系统和硬件架构的版本包
 func (v *VersionGO) FindPackage(kind, goos, goarch string) (*util.Package, error) {
+	// 标准化操作系统名称映射
+	goos = normalizeOS(goos)
 	// 标准化架构名称映射
 	goarch = normalizeArch(goarch)
 	prefix := fmt.Sprintf("go%s.%s-%s", v.Name, goos, goarch)
@@ -180,8 +182,34 @@ func (v *VersionGO) FindPackage(kind, goos, goarch string) (*util.Package, error
 	return nil, util.ErrPackageNotFound
 }
 
+// normalizeOS 标准化操作系统名称到Go官方命名
+func normalizeOS(os string) string {
+	// 处理arch.Validate()返回的格式 "unix \t架构"
+	if strings.HasPrefix(os, "unix") {
+		return "linux"
+	}
+	switch os {
+	case "darwin":
+		return "darwin"
+	case "windows":
+		return "windows"
+	case "linux":
+		return "linux"
+	default:
+		return os
+	}
+}
+
 // normalizeArch 标准化架构名称到Go官方命名
 func normalizeArch(arch string) string {
+	// 处理arch.Validate()返回的格式 "unix \t架构"
+	if strings.Contains(arch, "\t") {
+		parts := strings.Split(arch, "\t")
+		if len(parts) > 1 {
+			arch = strings.TrimSpace(parts[1])
+		}
+	}
+	
 	switch arch {
 	case "x86_64", "x64", "amd64":
 		return "amd64"
