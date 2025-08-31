@@ -89,17 +89,17 @@ jobs:
     
     - name: Setup NSIS
       run: |
-        # 使用 Chocolatey 安装 NSIS（最稳定的方法）
-        Write-Host "使用 Chocolatey 安装 NSIS..."
+        # Install NSIS using Chocolatey (most stable method)
+        Write-Host "Installing NSIS using Chocolatey..."
         choco install nsis -y --no-progress --force
         
-        # 验证安装
+        # Verify installation
         $nsisPath = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
         if (Test-Path $nsisPath) {
-          Write-Host "NSIS 安装成功: $nsisPath"
+          Write-Host "NSIS installed successfully: $nsisPath"
           & $nsisPath /VERSION
         } else {
-          Write-Host "标准路径未找到，尝试查找 NSIS..."
+          Write-Host "Standard path not found, searching for NSIS..."
           $nsisPaths = @(
             "${env:ProgramFiles}\NSIS\makensis.exe",
             "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
@@ -110,7 +110,7 @@ jobs:
           $found = $false
           foreach ($path in $nsisPaths) {
             if (Test-Path $path) {
-              Write-Host "找到 NSIS: $path"
+              Write-Host "Found NSIS: $path"
               & $path /VERSION
               $found = $true
               break
@@ -128,21 +128,21 @@ jobs:
         $version = "${{ steps.version.outputs.VERSION }}" -replace '^v',''
         Write-Host "Processing version: $version"
         
-        # 查找实际的二进制文件
+        # Find the actual binary file
         $binaryFile = Get-ChildItem -Name "envm-${{ steps.version.outputs.VERSION }}-windows-amd64.exe"
         if (-not $binaryFile) {
-          Write-Host "未找到二进制文件，列出当前文件："
+          Write-Host "Binary file not found, listing current files:"
           Get-ChildItem
-          throw "未找到预期的二进制文件"
+          throw "Expected binary file not found"
         }
         
-        Write-Host "找到二进制文件: $binaryFile"
+        Write-Host "Found binary file: $binaryFile"
         
-        # 更新NSIS脚本
+        # Update NSIS script
         $content = Get-Content "envm-installer.nsi" -Raw
         $content = $content -replace '!define PRODUCT_VERSION "1.0.0"', "!define PRODUCT_VERSION `"$version`""
         $content = $content -replace 'OutFile "envm-installer-1.0.0.exe"', "OutFile `"envm-installer-$version.exe`""
-        # 更新文件引用，使用实际的文件名
+        # Update file reference using actual filename  
         $content = $content -replace 'File /oname=envm.exe "envm-\$\{PRODUCT_VERSION\}-windows-amd64.exe"', "File /oname=envm.exe `"$binaryFile`""
         Set-Content "envm-installer.nsi" -Value $content
         
@@ -152,7 +152,7 @@ jobs:
     
     - name: Build installer
       run: |
-        # 查找并使用 makensis
+        # Find and use makensis
         $nsisPaths = @(
           "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
           "${env:ProgramFiles}\NSIS\makensis.exe",
@@ -164,23 +164,23 @@ jobs:
         foreach ($path in $nsisPaths) {
           if (Test-Path $path) {
             $makensisPath = $path
-            Write-Host "使用 NSIS: $path"
+            Write-Host "Using NSIS: $path"
             break
           }
         }
         
         if (-not $makensisPath) {
-          throw "未找到 makensis.exe"
+          throw "makensis.exe not found"
         }
         
-        # 验证 NSIS 版本
+        # Verify NSIS version
         & $makensisPath /VERSION
         
-        # 构建安装程序
-        Write-Host "构建安装程序..."
+        # Build installer
+        Write-Host "Building installer..."
         & $makensisPath envm-installer.nsi
         
-        # 验证生成的文件
+        # Verify generated files
         Get-ChildItem *.exe | ForEach-Object { 
           Write-Host "Generated: $($_.Name) ($($_.Length) bytes)"
         }
