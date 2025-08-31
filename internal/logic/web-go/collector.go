@@ -11,7 +11,11 @@ import (
 
 const (
 	// DefaultURL 提供go版本信息的默认网址
-	DefaultURL = "https://golang.google.cn/dl/"
+	DefaultURL = "https://golang.org/dl/"
+	// BackupURL 备用网址（中国镜像）
+	BackupURL = "https://golang.google.cn/dl/"
+	// ProxyURL 代理网址（通过代理访问）
+	ProxyURL = "https://goproxy.cn/golang.org/dl/"
 )
 
 // URLUnreachableError URL不可达错误
@@ -42,19 +46,38 @@ type Collector struct {
 	doc *goquery.Document
 }
 
-// NewCollector 返回采集器实例
+// GetURL 返回当前使用的URL
+func (c *Collector) GetURL() string {
+	return c.url
+}
+
+// NewCollector 返回采集器实例，支持URL自动回退
 func NewCollector(url string) (*Collector, error) {
 	if url == "" {
 		url = DefaultURL
 	}
+	
 	c := Collector{
 		url: url,
 	}
+	
+	// 尝试连接指定URL
 	resp, err := http.Get(c.url)
 	if err != nil {
-		return nil, err
+		// 如果是默认URL失败，尝试备用URL
+		if url == DefaultURL {
+			fmt.Printf("主URL连接失败，尝试备用URL: %s\n", BackupURL)
+			c.url = BackupURL
+			resp, err = http.Get(c.url)
+			if err != nil {
+				return nil, fmt.Errorf("主URL和备用URL都无法连接: %v", err)
+			}
+		} else {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
+	
 	if resp.StatusCode != http.StatusOK {
 		return nil, NewURLUnreachableError(c.url, nil)
 	}
@@ -145,9 +168,8 @@ type VersionGO struct {
 
 // FindPackage 返回指定操作系统和硬件架构的版本包
 func (v *VersionGO) FindPackage(kind, goos, goarch string) (*util.Package, error) {
-	if goos == "linux" && goarch == "x86_64" {
-		goarch = "386"
-	}
+	// 标准化架构名称映射
+	goarch = normalizeArch(goarch)
 	prefix := fmt.Sprintf("go%s.%s-%s", v.Name, goos, goarch)
 	for i := range v.Packages {
 		if v.Packages[i] == nil || !strings.EqualFold(v.Packages[i].Kind, kind) || !strings.HasPrefix(v.Packages[i].FileName, prefix) {
@@ -156,4 +178,20 @@ func (v *VersionGO) FindPackage(kind, goos, goarch string) (*util.Package, error
 		return v.Packages[i], nil
 	}
 	return nil, util.ErrPackageNotFound
+}
+
+// normalizeArch 标准化架构名称到Go官方命名
+func normalizeArch(arch string) string {
+	switch arch {
+	case "x86_64", "x64", "amd64":
+		return "amd64"
+	case "i386", "i686", "x86", "386":
+		return "386"
+	case "aarch64", "arm64":
+		return "arm64"
+	case "armv6l", "armv7l", "arm":
+		return "arm"
+	default:
+		return arch
+	}
 }

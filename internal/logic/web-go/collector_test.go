@@ -104,3 +104,128 @@ func TestURLUnreachableError(t *testing.T) {
 		So(e.Error(), ShouldEqual, fmt.Sprintf("URL %q is unreachable ==> %s", url, core.Error()))
 	})
 }
+
+func TestNormalizeArch(t *testing.T) {
+	Convey("测试架构名称标准化", t, func() {
+		testCases := []struct {
+			input    string
+			expected string
+			desc     string
+		}{
+			// amd64 variants
+			{"x86_64", "amd64", "x86_64 should map to amd64"},
+			{"x64", "amd64", "x64 should map to amd64"},
+			{"amd64", "amd64", "amd64 should remain amd64"},
+			
+			// 386 variants
+			{"i386", "386", "i386 should map to 386"},
+			{"i686", "386", "i686 should map to 386"},
+			{"x86", "386", "x86 should map to 386"},
+			{"386", "386", "386 should remain 386"},
+			
+			// arm64 variants
+			{"aarch64", "arm64", "aarch64 should map to arm64"},
+			{"arm64", "arm64", "arm64 should remain arm64"},
+			
+			// arm variants
+			{"armv6l", "arm", "armv6l should map to arm"},
+			{"armv7l", "arm", "armv7l should map to arm"},
+			{"arm", "arm", "arm should remain arm"},
+			
+			// unknown architecture
+			{"unknown", "unknown", "unknown arch should remain unchanged"},
+		}
+
+		for _, tc := range testCases {
+			Convey(tc.desc, func() {
+				result := normalizeArch(tc.input)
+				So(result, ShouldEqual, tc.expected)
+			})
+		}
+	})
+}
+
+func TestVersionGO_FindPackage(t *testing.T) {
+	Convey("测试FindPackage架构映射功能", t, func() {
+		// 创建测试版本数据
+		version := &VersionGO{
+			Version: util.Version{
+				Name: "1.21.0",
+				Packages: []*util.Package{
+					{
+						FileName: "go1.21.0.linux-amd64.tar.gz",
+						Kind:     util.ArchiveKind,
+						OS:       "Linux",
+						Arch:     "x86-64",
+					},
+					{
+						FileName: "go1.21.0.linux-386.tar.gz", 
+						Kind:     util.ArchiveKind,
+						OS:       "Linux",
+						Arch:     "x86",
+					},
+					{
+						FileName: "go1.21.0.linux-arm64.tar.gz",
+						Kind:     util.ArchiveKind,
+						OS:       "Linux", 
+						Arch:     "ARMv8",
+					},
+					{
+						FileName: "go1.21.0.windows-amd64.zip",
+						Kind:     util.ArchiveKind,
+						OS:       "Windows",
+						Arch:     "x86-64",
+					},
+				},
+			},
+		}
+
+		Convey("x86_64应该找到amd64包", func() {
+			pkg, err := version.FindPackage(util.ArchiveKind, "linux", "x86_64")
+			So(err, ShouldBeNil)
+			So(pkg, ShouldNotBeNil)
+			So(pkg.FileName, ShouldEqual, "go1.21.0.linux-amd64.tar.gz")
+		})
+
+		Convey("amd64应该找到amd64包", func() {
+			pkg, err := version.FindPackage(util.ArchiveKind, "linux", "amd64")
+			So(err, ShouldBeNil)
+			So(pkg, ShouldNotBeNil)
+			So(pkg.FileName, ShouldEqual, "go1.21.0.linux-amd64.tar.gz")
+		})
+
+		Convey("i386应该找到386包", func() {
+			pkg, err := version.FindPackage(util.ArchiveKind, "linux", "i386")
+			So(err, ShouldBeNil)
+			So(pkg, ShouldNotBeNil)
+			So(pkg.FileName, ShouldEqual, "go1.21.0.linux-386.tar.gz")
+		})
+
+		Convey("386应该找到386包", func() {
+			pkg, err := version.FindPackage(util.ArchiveKind, "linux", "386")
+			So(err, ShouldBeNil)
+			So(pkg, ShouldNotBeNil)
+			So(pkg.FileName, ShouldEqual, "go1.21.0.linux-386.tar.gz")
+		})
+
+		Convey("aarch64应该找到arm64包", func() {
+			pkg, err := version.FindPackage(util.ArchiveKind, "linux", "aarch64")
+			So(err, ShouldBeNil)
+			So(pkg, ShouldNotBeNil)
+			So(pkg.FileName, ShouldEqual, "go1.21.0.linux-arm64.tar.gz")
+		})
+
+		Convey("不存在的架构应该返回错误", func() {
+			pkg, err := version.FindPackage(util.ArchiveKind, "linux", "nonexistent")
+			So(err, ShouldEqual, util.ErrPackageNotFound)
+			So(pkg, ShouldBeNil)
+		})
+
+		Convey("Windows x86_64应该找到对应包", func() {
+			pkg, err := version.FindPackage(util.ArchiveKind, "windows", "x86_64")
+			So(err, ShouldBeNil)
+			So(pkg, ShouldNotBeNil)
+			So(pkg.FileName, ShouldEqual, "go1.21.0.windows-amd64.zip")
+		})
+	})
+}
