@@ -5,6 +5,7 @@ import (
 	"github.com/FirewineXie/envm/internal/commands/common"
 	"github.com/FirewineXie/envm/internal/config"
 	"github.com/FirewineXie/envm/internal/logic/web-java"
+	"github.com/FirewineXie/envm/util"
 	"github.com/urfave/cli"
 	"os"
 	"os/exec"
@@ -32,21 +33,24 @@ func CommandUninstall(ctx *cli.Context) error {
 
 // CommandUse 激活使用
 func CommandUse(ctx *cli.Context) error {
-	v, err := common.GetVersion(ctx, configLocal.Downloads, "go", true)
+	v, err := common.GetVersion(ctx, configLocal.Downloads, "jdk", true)
 	if err != nil {
 		return err
 	}
 	// active use
-	_ = os.Remove(configLocal.Symlink)
-	fmt.Println(path.Join(configLocal.Downloads, v), configLocal.Symlink)
-	if err := os.Symlink(path.Join(configLocal.Downloads, v), configLocal.Symlink); err != nil {
-		return cli.NewExitError(fmt.Sprintf("%s", err.Error()), 1)
+	targetPath := path.Join(configLocal.Downloads, v)
+	fmt.Printf("Switching to Java version %s\n", v)
+	fmt.Printf("Creating symlink: %s -> %s\n", configLocal.Symlink, targetPath)
+	
+	if err := util.CreateSymlink(targetPath, configLocal.Symlink); err != nil {
+		return cli.NewExitError(fmt.Sprintf("Failed to create symlink: %s", err.Error()), 1)
 	}
+	
 	output, err := exec.Command("java", "--version").Output()
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(output))
+	fmt.Printf("Successfully switched to: %s", string(output))
 	return nil
 }
 

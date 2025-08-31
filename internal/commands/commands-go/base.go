@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 )
 
 var configLocal = config.Default().LinkSetting[config.GO]
@@ -38,6 +39,16 @@ func CommandUninstall(ctx *cli.Context) error {
 // CommandInstall 安装命令
 func CommandInstall(ctx *cli.Context) error {
 	versionS := ctx.Args().First()
+	
+	// 检查版本是否已存在
+	targetDir := filepath.Clean(filepath.Join(configLocal.Downloads, "go"+versionS))
+	if exists, err := util.PathExists(targetDir); err != nil {
+		return cli.NewExitError(fmt.Sprintf("check existing version error: %v", err), 1)
+	} else if exists {
+		fmt.Printf("Go version %s is already installed\n", versionS)
+		return nil
+	}
+	
 	collector, err := web_go.NewCollector("")
 	if err != nil {
 		return cli.NewExitError(fmt.Sprintf("collect version error1 + %v", err), 1)
@@ -55,14 +66,28 @@ func CommandInstall(ctx *cli.Context) error {
 		return cli.NewExitError(fmt.Sprintf("find version of system error + %v", err), 1)
 	}
 	downloadPath := filepath.Clean(filepath.Join(configLocal.Downloads, findPackage.FileName))
-	findPackage.URL = "https://golang.google.cn" + findPackage.URL
-	err = findPackage.DownloadV2(downloadPath)
-	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("download version error + %v", err), 1)
-	}
-	err = findPackage.VerifyChecksum(downloadPath)
-	if err != nil {
-		return cli.NewExitError(fmt.Sprintf("verify version error + %v", err), 1)
+	
+	// 检查下载文件是否已存在，避免重复下载
+	if exists, err := util.PathExists(downloadPath); err != nil {
+		return cli.NewExitError(fmt.Sprintf("check download file error: %v", err), 1)
+	} else if !exists {
+		// 根据收集器的URL确定下载前缀
+		downloadPrefix := "https://golang.org"
+		if strings.Contains(collector.GetURL(), "golang.google.cn") {
+			downloadPrefix = "https://golang.google.cn"
+		}
+		findPackage.URL = downloadPrefix + findPackage.URL
+		fmt.Printf("Downloading Go %s...\n", versionS)
+		err = findPackage.DownloadV2(downloadPath)
+		if err != nil {
+			return cli.NewExitError(fmt.Sprintf("download version error + %v", err), 1)
+		}
+		err = findPackage.VerifyChecksum(downloadPath)
+		if err != nil {
+			return cli.NewExitError(fmt.Sprintf("verify version error + %v", err), 1)
+		}
+	} else {
+		fmt.Printf("Archive file already exists, skipping download\n")
 	}
 
 	// 解压安装包
@@ -72,7 +97,7 @@ func CommandInstall(ctx *cli.Context) error {
 	}
 	err = os.Remove(downloadPath)
 	// 目录重命名
-	if err = os.Rename(filepath.Join(unchivePath, "go"), filepath.Clean(filepath.Join(configLocal.Downloads, "go"+versionS))); err != nil {
+	if err = os.Rename(filepath.Join(unchivePath, "go"), targetDir); err != nil {
 		return cli.NewExitError(fmt.Sprintf(" %s", err.Error()), 1)
 	}
 	fmt.Println("Installed successfully")
@@ -83,20 +108,22 @@ func CommandInstall(ctx *cli.Context) error {
 func CommandUse(ctx *cli.Context) error {
 	v, err := common.GetVersion(ctx, configLocal.Downloads, "go", true)
 	if err != nil {
-
 		return err
 	}
 	// active use
-	_ = os.Remove(configLocal.Symlink)
-	fmt.Println(path.Join(configLocal.Downloads, "go"+v), configLocal.Symlink)
-	if err := os.Symlink(path.Join(configLocal.Downloads, "go"+v), configLocal.Symlink); err != nil {
-		return cli.NewExitError(fmt.Sprintf("%s", err.Error()), 1)
+	targetPath := path.Join(configLocal.Downloads, "go"+v)
+	fmt.Printf("Switching to Go version %s\n", v)
+	fmt.Printf("Creating symlink: %s -> %s\n", configLocal.Symlink, targetPath)
+	
+	if err := util.CreateSymlink(targetPath, configLocal.Symlink); err != nil {
+		return cli.NewExitError(fmt.Sprintf("Failed to create symlink: %s", err.Error()), 1)
 	}
+	
 	output, err := exec.Command("go", "version").Output()
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(output))
+	fmt.Printf("Successfully switched to: %s", string(output))
 	return nil
 }
 
