@@ -118,7 +118,7 @@ jobs:
           }
           
           if (-not $found) {
-            throw "NSIS 安装失败，未在任何预期位置找到"
+            throw "NSIS installation failed, not found in any expected location"
           }
         }
       shell: powershell
