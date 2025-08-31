@@ -89,23 +89,16 @@ jobs:
     
     - name: Setup NSIS
       run: |
-        # Install NSIS using Chocolatey (most stable method)
         Write-Host "Installing NSIS using Chocolatey..."
         choco install nsis -y --no-progress --force
         
-        # Verify installation
         $nsisPath = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
         if (Test-Path $nsisPath) {
           Write-Host "NSIS installed successfully: $nsisPath"
           & $nsisPath /VERSION
         } else {
           Write-Host "Standard path not found, searching for NSIS..."
-          $nsisPaths = @(
-            "${env:ProgramFiles}\NSIS\makensis.exe",
-            "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
-            "${env:ChocolateyInstall}\lib\nsis\tools\makensis.exe",
-            "${env:ChocolateyInstall}\bin\makensis.exe"
-          )
+          $nsisPaths = @("${env:ProgramFiles}\NSIS\makensis.exe", "${env:ProgramFiles(x86)}\NSIS\makensis.exe", "${env:ChocolateyInstall}\lib\nsis\tools\makensis.exe", "${env:ChocolateyInstall}\bin\makensis.exe")
           
           $found = $false
           foreach ($path in $nsisPaths) {
@@ -128,7 +121,6 @@ jobs:
         $version = "${{ steps.version.outputs.VERSION }}" -replace '^v',''
         Write-Host "Processing version: $version"
         
-        # Find the actual binary file
         $binaryFile = Get-ChildItem -Name "envm-${{ steps.version.outputs.VERSION }}-windows-amd64.exe"
         if (-not $binaryFile) {
           Write-Host "Binary file not found, listing current files:"
@@ -138,11 +130,9 @@ jobs:
         
         Write-Host "Found binary file: $binaryFile"
         
-        # Update NSIS script
         $content = Get-Content "envm-installer.nsi" -Raw
         $content = $content -replace '!define PRODUCT_VERSION "1.0.0"', "!define PRODUCT_VERSION `"$version`""
         $content = $content -replace 'OutFile "envm-installer-1.0.0.exe"', "OutFile `"envm-installer-$version.exe`""
-        # Update file reference using actual filename  
         $content = $content -replace 'File /oname=envm.exe "envm-\$\{PRODUCT_VERSION\}-windows-amd64.exe"', "File /oname=envm.exe `"$binaryFile`""
         Set-Content "envm-installer.nsi" -Value $content
         
@@ -152,13 +142,7 @@ jobs:
     
     - name: Build installer
       run: |
-        # Find and use makensis
-        $nsisPaths = @(
-          "${env:ProgramFiles(x86)}\NSIS\makensis.exe",
-          "${env:ProgramFiles}\NSIS\makensis.exe",
-          "${env:ChocolateyInstall}\lib\nsis\tools\makensis.exe",
-          "${env:ChocolateyInstall}\bin\makensis.exe"
-        )
+        $nsisPaths = @("${env:ProgramFiles(x86)}\NSIS\makensis.exe", "${env:ProgramFiles}\NSIS\makensis.exe", "${env:ChocolateyInstall}\lib\nsis\tools\makensis.exe", "${env:ChocolateyInstall}\bin\makensis.exe")
         
         $makensisPath = $null
         foreach ($path in $nsisPaths) {
@@ -173,14 +157,11 @@ jobs:
           throw "makensis.exe not found"
         }
         
-        # Verify NSIS version
         & $makensisPath /VERSION
         
-        # Build installer
         Write-Host "Building installer..."
         & $makensisPath envm-installer.nsi
         
-        # Verify generated files
         Get-ChildItem *.exe | ForEach-Object { 
           Write-Host "Generated: $($_.Name) ($($_.Length) bytes)"
         }
